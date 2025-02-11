@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+Data type : Database
+
+Specific notes :
+	-
+
+General notes : 
+	- Most of the tags are optional, you can remove the really unnecessary ones.
+	- Tags marked as 'multiple' can be copied (with its block of sub-tag, up to the ending tag) if needed.
+	- all blocs marked "OPTION" can be fully removed if not needed (now or in the future)
+	- **ABS MANDATORY / ABS COMPULSORY**: a value need to be absolutely provided, no way to escape! (SSHADE will not function properly if absent).
+	- **MANDATORY / COMPULSORY**: very important values for the search of the data. If the value (txt or numeric) of one tag is not known (or irrelevant in your case), then put 'NULL' and write a comment to keep track of the missing value. Remove comment when value is added.
+	- **MANDATORY / COMPULSORY only for ...**: when a value is optionally MANDATORY the condition is written. 
+	- "LINK to existing UID" (unique identifier): references to another table in SSHADE. You have to reconstruct (easy for some: rule is in comment) or found this existing UID in the database beforehand (use "Provider/Full Search" menu in SSHADE).
+	- "UID to CREATE": you need to create this UID using their specific rules of creation that are explained in their attached comment. You can use only alpha-numeric characters and the following: '_', '-'
+	- Enumeration type ("Enum" or "OpenEnum") must contain one single item from the list given in brackets {}.
+	- use a CDATA tag when a value contains at least one special character (ie: &, >, <,...). Example: <![CDATA[AT&T]]> for AT&T
+	- The data format is noted beetween [] and is 'ascii' when not specified. Ex: [Float], [Integer]. For [float] 2 formats are possible: decimal (123.456) or scientific (1.234e-56)  
+	- when no numerical format or Enum is specified, it is free text but limited to 256 characters. Only those noted [blob] have no size limitation.
+	- to import data for the first time you have to set <import_mode>='first import'. To correct data you have to change it to 'correction'.
+	- when a <filename> is given, then the file should be ziped with this xml file for import.
+-->
+
+<import type="database" ssdm_version="0.9.0"
+        xmlns="http://sshade.eu/schema/import"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://sshade.eu/schema/import http://sshade.eu/schema/import-0.9.xsd">
+    
+<!-- DATABASE -->
+    <database>
+        <import_mode>first import</import_mode> <!-- **ABS MANDATORY** Mode of import of the database data. Enum: {first import, ignore, draft, no change, correction} -->
+        <uid>DB_</uid> <!-- **ABS MANDATORY to CREATE** Unique identifier code given to the database. Should be of the style ‘DB_DatabaseAcronym’. Format: in UPPERCASES -->
+		
+	<!-- DATABASE NAME AND DESCRIPTION -->		
+		<acronym></acronym> <!-- **ABS MANDATORY, requested for DOI**. Acronym of the database. Use only alpha-numeric characters and the following: '_', '-', but without space -->
+		<name><![CDATA[]]></name> <!-- **ABS MANDATORY, requested for DOI**. Full Name of the database -->
+		<description><![CDATA[]]></description> <!-- **MANDATORY, recommended for DOI** Description of the database and its scientific content [blob] -->
+		<keywords> <!-- **MANDATORY: at least one, recommended for DOI** Keywords describing the scientific content of the database -->
+			<keyword>database</keyword><!-- multiple --> <!-- **MANDATORY** Keyword describing the type(s) of data present in the database: typical wavelength range(s), type(s) of materials, types of data and products, ... -->
+		</keywords>
+		<logo_filename></logo_filename> <!-- **MANDATORY** File name (with only .png extension) of the logo of the database. The file should be ziped with this xml file for import -->
+	<!-- DATABASE CREATORS -->
+		<creators> <!-- **ABS MANDATORY: at least one, requested for DOI** Creator(s) of the database -->
+			<creator><!-- multiple -->
+				<first_name></first_name> <!-- **ABS MANDATORY** First name (given name) -->
+				<family_name></family_name> <!-- **ABS MANDATORY** Family name (last name) -->
+				<orcid_identifier></orcid_identifier> <!-- (**MANDATORY**) ORCID identifier code that uniquely identify the database creator -->
+				<affiliation></affiliation> <!-- **MANDATORY** Affiliation (Laboratory acronym / Organization acronym) of the creator(s) of the database -->
+			</creator>
+		</creators> 
+		<date_created></date_created> <!-- **ABS MANDATORY, requested for DOI** Date of creation of the database, i.e., date of the first time publicly online [Format: ‘YYYY-MM-DD’] Ex: '1999-10-05' -->
+		
+	<!-- DATABASE ORGANIZATIONS AND LABORATORIES -->
+		<organizations> <!-- **ABS MANDATORY: at least one** Organizations to which belong the database -->
+			<organization><!-- multiple --> 
+				<acronym></acronym> <!-- **ABS MANDATORY** Acronym of the organization -->
+				<name><![CDATA[]]></name> <!-- **ABS MANDATORY** Name of the organization -->
+				<region><![CDATA[]]></region> <!-- Region, state, province, or county of the database organization -->
+				<country_code></country_code> <!-- **ABS MANDATORY** 2-digit country code of the database organization. Enum: {CH, DE, ES, FR, GB, HU, IT, PL, …} [norm ISO 3166-1 alpha-2] see  https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2 -->
+				<logo_filename></logo_filename> <!-- **MANDATORY** File name (with only .png extension) of the logo of the database organization. The file should be ziped with this xml file for import -->
+			</organization>
+		</organizations> 
+		<laboratories> <!-- **MANDATORY: at least one** Laboratories which host and is responsible of this database -->
+			<laboratory><!-- multiple -->
+				<acronym></acronym> <!-- **MANDATORY** Acronym of the laboratory -->	
+				<name><![CDATA[]]></name> <!-- **MANDATORY** Full name of the laboratory -->
+				<logo_filename></logo_filename> <!-- **MANDATORY** File name (with only .png extension) of the logo of the database laboratory. The file should be ziped with this xml file for import -->
+			</laboratory>
+		</laboratories>
+		
+	<!-- DATABASE FUNDERS AND SPONSORS -->
+		<funders> <!-- **MANDATORY: at least one, recommended for DOI** Institutions that provide regular financial support for the development of the database infrastructure and content -->
+			<funder><!-- multiple --> 	
+				<acronym></acronym> <!-- Acronym of the institution -->	
+				<name><![CDATA[]]></name> <!-- **MANDATORY** Full name of the institution -->
+				<award_number></award_number> <!-- Code assigned by the funder to a sponsored award (grant) -->
+				<award_title></award_title> <!-- Acronym and title of the sponsored award (grant). Format: 'ACRONYM: Title' -->
+				<logo_filename></logo_filename> <!-- File name (with only .png extension) of the logo of the database funder. The file should be ziped with this xml file for import -->
+			</funder>
+		</funders> 
+		<sponsors> <!-- **OPTION** Institutions that provide ponctual financial support for the development of part of the database content -->
+			<sponsor><!-- multiple --> 
+				<acronym></acronym> <!-- **MANDATORY in OPTION** Acronym of the institution -->	
+				<name><![CDATA[]]></name> <!-- Full name of the institution -->
+				<logo_filename></logo_filename> <!-- File name (with only .png extension) of the logo of the database sponsor. The file should be ziped with this xml file for import -->
+			</sponsor>
+		</sponsors>
+		
+	<!-- DATABASE WEB SITES -->
+		<links> <!-- **MANDATORY: at least one** Link(s) to current web page(s) of the database at your institute (not yet set a the beginning) -->
+			<link><!-- multiple --> 
+				<name><![CDATA[]]></name> <!-- **MANDATORY** Name of the web page(s) -->
+				<url><![CDATA[]]></url> <!-- **MANDATORY** URL address (avoid non-perennial commercial URL) -->
+			</link>
+		</links>
+		<comments><![CDATA[]]></comments> <!-- Additional information on the database [blob] -->
+    </database>
+</import>

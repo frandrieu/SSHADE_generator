@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+Data type : Publication
+
+Specific notes :
+	
+General notes : 
+	- Most of the tags are optional, you can remove the really unnecessary ones.
+	- Tags marked as 'multiple' can be copied (with its block of sub-tag, up to the ending tag) if needed.
+	- all blocs marked "OPTION" can be fully removed if not needed (now or in the future)
+	- **ABS MANDATORY / ABS COMPULSORY**: a value need to be absolutely provided, no way to escape! (SSHADE will not function properly if absent).
+	- **MANDATORY / COMPULSORY**: very important values for the search of the data. If the value (txt or numeric) of one tag is not known (or irrelevant in your case), then put 'NULL' and write a comment to keep track of the missing value. Remove comment when value is added.
+	- **MANDATORY / COMPULSORY only for ...**: when a value is optionally MANDATORY the condition is written. 
+	- "LINK to existing UID" (unique identifier): references to another table in SSHADE. You have to reconstruct (easy for some: rule is in comment) or found this existing UID in the database beforehand (use "Provider/Full Search" menu in SSHADE).
+	- "UID to CREATE": you need to create this UID using their specific rules of creation that are explained in their attached comment. Use only alphanumeric characters and '_'.
+	- For UID you can use only alpha-numeric characters and the following: '_', '-'
+	- Enumeration type ("Enum" or "OpenEnum") must contain one single item from the list given in brackets {}.
+	- use a CDATA tag when a value contains at least one special character (ie: &, >, <,...). Example: <![CDATA[AT&T]]> for AT&T
+	- The data format is noted beetween [] and is 'ascii' when not specified. Ex: [Float], [Integer]. For [float] 2 formats are possible: decimal (123.456) or scientific (1.234e-56)  
+	- when no numerical format or Enum is specified, it is free text but limited to 256 characters. Only those noted [blob] have no size limitation.
+	- to import data for the first time you have to set <import_mode>='first import'. To correct data you have to change it to 'correction'.
+	- when a <filename> is given, then the file should be ziped with this xml file for import.  
+-->
+
+<import type="publications" ssdm_version="0.9.0"
+        xmlns="http://sshade.eu/schema/import"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://sshade.eu/schema/import http://sshade.eu/schema/import-0.9.xsd">
+
+	<publication><!-- multiple -->
+		<import_mode>first import</import_mode> <!-- **ABS MANDATORY** Mode of import of the 'publication' data. Enum: {first import, ignore, draft, no change, correction} -->
+		<uid>PUBLI_</uid> <!-- **ABS MANDATORY to CREATE** Unique identifier code given to the publication. Should be of the style ‘PUBLI_FirstAuthorName_Year(Letter)’ (ascii) -->
+		
+	<!-- PUBLICATION -->
+		<type></type> <!-- **ABS MANDATORY** Type of publication. Enum: {journal, book, conference proceeding, abstract booklet, thesis, report, manual, catalog, database, other} -->
+		<document_type></document_type> <!-- **ABS MANDATORY** Type of document. Enum: {article, review article, discussion paper, discussion, correction, book, book chapter, conference paper, conference abstract, phd thesis, master thesis, scientific report, technical report, technical documentation, catalog of data, catalog of objects, database, numerical data set, other} -->
+		<state></state> <!-- **ABS MANDATORY** Publication state of the document. Enum: {published, in press, submitted, internal, unpublished} -->
+		<access_right></access_right> <!-- **ABS MANDATORY** Publisher right on the document. Enum: {publisher copyright, publisher free, free, restricted}  -->
+		<access_free_date></access_free_date> <!-- Date at which the document will be freely accessible, in case of publisher copyrights [Format: 'YYYY-MM-DD'] -->
+		
+	<!-- AUTHORS -->
+		<authors><!-- **ABS MANDATORY at least one** --> <!-- Ordered list (as in the publication) of names and initial(s) of the first name (forename) of all authors of the publication. Plus possible group/team of authors -->
+			<author><!-- multiple -->
+				<first_name></first_name> <!-- **ABS MANDATORY** Initial(s) of the first name (given name). A ‘dot’ and a ‘space’ should be put between multiple initials - ex: 'C.', 'J. F. K.', 'B. J.'... but no space for 'J.-J.' -->
+				<family_name></family_name> <!-- **ABS MANDATORY** Family name (last name) -->
+			</author>
+		</authors>
+		
+	<!-- REFERENCE -->
+		<year></year> <!-- **ABS MANDATORY** Year of publication [format: YYYY] -->
+		<title><![CDATA[]]></title> <!-- **ABS MANDATORY** Full title of the publication -->
+		<journal></journal> <!-- **only for journal: ABS MANDATORY** Journal name or acronym (Use a commonly accepted written form) -->
+		<volume></volume> <!-- **ABS MANDATORY only for published papers in journal** Volume number of the journal of the publication, or of a multi-volume book. May include letters [ascii] -->
+		<number></number> <!-- Issue number of the journal [ascii] -->
+		<first_page></first_page> <!-- **ABS MANDATORY only for published papers** First page of the publication or publication code [ascii] -->
+		<last_page></last_page> <!-- Last page of the publication, if exist [integer] -->
+		<pages_number></pages_number> <!-- Number of pages of the publication [integer] -->
+		<abstract><![CDATA[]]></abstract> <!-- **MANDATORY only for articles, book and PhD thesis** Full abstract text of the publication [blob] -->
+		
+	<!-- KEYWORDS -->
+		<keywords> <!-- **MANDATORY** -->
+			<keyword></keyword><!-- multiple --> <!-- **MANDATORY** Keyword describing the publication subject and content -->
+		</keywords>
+
+	<!-- CONFERENCES -->
+		<conference>
+			<name></name> <!-- **MANDATORY only for conference proceedings and abstract booklet** Name of the conference -->
+			<location></location> <!-- **only for conference proceedings and abstract booklet** Location of the conference (town, state, country) -->
+			<date></date> <!-- **only for conference proceedings and abstract booklet** Date of the conference [ascii] Ex: ’25-28 September 2012’ -->
+		</conference>
+		
+	<!-- BOOK -->
+		<book>
+			<chapter_number></chapter_number> <!-- **only for book** Chapter number -->
+			<title><![CDATA[]]></title> <!-- **MANDATORY only for book** Title of the book -->
+			<series></series> <!-- **only for book** Title of the book series -->
+			<edition_number></edition_number> <!-- **only for book and database** Alphabetic number (‘first’, ‘second’, 1, 2, I, II, …) of the edition -->
+		</book>
+		
+	<!-- EDITOR AND PUBLISHER -->
+		<editor></editor> <!-- **only for book and conference proceedings** Name(s) of the editor(s) -->
+		<publisher></publisher> <!-- **MANDATORY only for book, conference proceedings and thesis** Name of the publisher -->
+		<publisher_city></publisher_city> <!-- **only for book, conference proceedings and thesis** Name of the city and country of the publisher -->
+		
+	<!-- DATABASE AND NUMERICAL DATA -->
+		<dataset>
+			<database_name></database_name> <!-- **MANDATORY only for database and numerical data set** Name of the external database containing the data set -->
+			<database_url></database_url> <!-- **MANDATORY only for database and numerical data set** URL of the external database containing the data set -->
+		</dataset>
+		
+	<!-- IDENTIFIERS AND LINKS -->
+		<doi><![CDATA[]]></doi> <!-- **MANDATORY only for published papers in journal** Digital Object Identifier -->
+		<identifiers> <!-- OPTION --><!-- Other official identifiers of the publication (except DOI) -->
+			<identifier><!-- multiple -->
+				<type></type> <!-- **ABS MANDATORY for OPTION** Acronym of the type of identifier of the publication. Enum: {ARK, arXiv, bibcode, EISSN, HAL, Handle, ISBN, ISSN, ISTC, PMID, TEL, URL, no}. URL is only for publication without official identifier code, but with local url -->
+				<code></code> <!-- **MANDATORY for OPTION, except for type={URL, no}** Identifier code of the publication -->
+				<url></url> <!-- **CALCULATED, MANDATORY for OPTION only for 'ARK, EISSN, ISBN, ISSN, ISTC, URL'** URL of the publication at some repository or local, but stable, web site -->
+			</identifier>
+		</identifiers>
+		<filename></filename> <!-- **MANDATORY only for free publication** Name of the pdf file. This image file should be zipped with the xml file -->
+		
+	<!-- CONTENTS -->
+		<contents> <!-- **MANDATORY** -->
+			<content></content><!-- multiple --> <!-- **MANDATORY** Publication content. Enum: {instrument-technique, numerical model, species, phase, sample, material-matter, object, spectral data, band list data, BRDF data, thermodynamic data, spectral data use, band list data use, BRDF data use, thermodynamic data use, astrophysics, planetary sciences, earth sciences, remote sensing, experimental physics, theoretical physics, applied physics, materials sciences, chemistry, optics, other application, ...} -->
+		</contents>
+		
+	<!-- CITED PUBLICATIONS -->
+		<cited_publications> <!-- **OPTION - RECOMMENDED if cited publication exist in the database** -->
+			<publication_uid></publication_uid><!-- multiple --> <!-- LINK to the UID of the experimental publication cited in the paper [‘PUBLI_FirstAuthorName_Year(Letter)’] -->
+		</cited_publications>
+		
+	<!-- USED SPECTRA AND BANDLIST --> <!-- **ONLY for 'data user' paper** (not for paper producing data) -->
+		<used_experiments> <!-- **OPTION - RECOMMENDED if exist** -->
+			<experiment_uid></experiment_uid><!-- multiple --> <!-- **ONLY for papers using SSHADE data** LINK to the UID of the experiment (if in database) used in the paper ['EXPERIMENT_AB_yyyymmdd_123'] -->
+		</used_experiments>
+		<used_bandlists><!-- **OPTION - RECOMMENDED if exist** -->
+			<bandlist_uid></bandlist_uid><!-- multiple --> <!-- **ONLY for papers using SSHADE data** LINK to the UID of the bandlist (if in database) used in the paper ['BANDLIST_molecule_constituent_temperature'] -->
+		</used_bandlists>
+	<!-- COMMENTS -->	
+		<comments><![CDATA[]]></comments> <!-- Any comment about the publication [Blob] -->
+	</publication>
+</import>

@@ -1,0 +1,1307 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+Data type : Sample
+
+Specific notes :
+	- <is_generic> is used to flag 'generic samples' used for high level spectral products (absorption coefficients, optical constants spectra, ...), ie. when a simple (only one layer and one material) virtual sample is used to represent a series of samples either with different thicknesses or recorded over different wavelength ranges.
+	- When using a "generic sample" for a series of samples the values of the different layer thicknesses or the different wavelength ranges should be noted in the "layer comments".
+	- If <material_import_mode>='use existing', only the UID is needed and the rest of the material description is ignored, you can delete the unnecessary tags.	
+	- If <constituent_import_mode>='use existing', only the UID is needed and the rest of the constituent description is ignored, you can delete the unnecessary tags.
+	- For complex materials only one constituent is needed, containing only necessary informations
+	- You cannot add a new molecule, atom or mineral in this file. They must be available in their respective databases first and called using their UID
+	- in 'variables' (<solid_variables>, <mineral_variables>, <liquid_variables>): 
+		- no value entered keeps the initial value (or keeps it void). 'NULL' remove the initial value, or keep it void (also apply for non-mandatory). A new value replace the initial value. 
+		- when there is a flag 'replace' in a <comments>, you can replace the original comment by your comment by setting <comments replace="yes"> or add it to the original comment by setting <comments replace="no">.
+		- some "multiple blocks" contain the flag 'full_definition'={yes, no} to define if the whole block has to be redefined, or if only some elements need to be added or modified.
+	
+General notes : 
+	- Most of the tags are optional, you can remove the really unnecessary ones.
+	- Tags marked as 'multiple' can be copied (with its block of sub-tag, up to the ending tag) if needed.
+	- all blocks marked "OPTION" can be fully removed if not needed (now or in the future)
+	- **ABS MANDATORY / ABS COMPULSORY**: a value need to be absolutely provided, no way to escape! (SSHADE will not function properly if absent).
+	- **MANDATORY / COMPULSORY**: very important values for the search of the data. If the value (txt or numeric) of one tag is not known (or irrelevant in your case), then put 'NULL' and write a comment to keep track of the missing value. Remove comment when value is added.
+	- **MANDATORY / COMPULSORY only for ...**: when a value is optionally MANDATORY the condition is written. 
+	- "LINK to existing UID" (unique identifier): references to another table in SSHADE. You have to reconstruct (easy for some: rule is in comment) or found this existing UID in the database beforehand (use "Provider/Full Search" menu in SSHADE).
+	- "UID to CREATE": you need to create this UID using their specific rules of creation that are explained in their attached comment. Use only alphanumeric characters and '_'.
+	- For UID you can use only alpha-numeric characters and the following: '_', '-'
+	- Enumeration type ("Enum" or "OpenEnum") must contain one single item from the list given in brackets {}.
+	- use an optional <![CDATA[]]> tag when a value contains at least one special character (ie: &, >, <, /, ...). Example: <![CDATA[AT&T]]> for AT&T
+	- The data format is noted beetween [] and is 'ascii' when not specified. Ex: [Float], [Integer]. For [float] 2 formats are possible: decimal (123.456) or scientific (1.234e-56)  
+	- when no numerical format or Enum is specified, it is free text but limited to 256 characters. Only those noted [blob] have no size limitation.
+	- to import data for the first time you have to set <import_mode>='first import'. To correct data you have to change it to 'correction'.
+	- when a <filename> is given, then the file should be ziped with this xml file for import.
+-->
+
+<import type="sample" ssdm_version="0.9.0"
+        xmlns="http://sshade.eu/schema/import"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://sshade.eu/schema/import http://sshade.eu/schema/import-0.9.xsd">
+
+	<sample><!-- multiple -->
+	<!-- SAMPLE IMPORT MODE AND INDEXES -->
+		<import_mode>first import</import_mode> <!-- **ABS MANDATORY** Mode of import of 'sample' data. Enum: {first import, ignore, draft, no change, correction} -->
+		<uid>SAMPLE_</uid> <!-- **ABS MANDATORY to CREATE** Unique identifier code given to the sample. Should be of the style ‘SAMPLE_AB_yyyymmdd_123...’ where ‘AB’ is your initials, 'yyyymmdd' the current date, and '123...' should be alphanumeric ascii (only with '_'), with no more than 6 characters -->
+		<owner_databases> <!-- **ABS MANDATORY at least one** -->
+			<database_uid>DB_</database_uid><!-- multiple --> <!-- **ABS MANDATORY** LINK to the existing UID of the database which owns this sample and manages its information [‘DB_DatabaseAcronym’] -->
+		</owner_databases>
+
+	<!-- SAMPLE EXPERIMENTALISTS -->
+		<experimentalists> <!-- **MANDATORY** -->
+			<experimentalist_uid>EXPER_</experimentalist_uid><!-- multiple --> <!-- **MANDATORY** LINK to the existing UID of the experimentalist who prepared the sample [‘EXPER_Firstname_Lastname(_n)'] -->
+		</experimentalists>
+		
+	<!-- SAMPLE NAME and ORIGIN -->
+		<name></name> <!-- **ABS MANDATORY** Name of sample given by experimentalist. Should contain explicit info on the sample or main constituting materials (name(s), composition,...) + typical properties -->
+		<date></date> <!-- **MANDATORY** Date of creation of the sample, or of end of its processing(s) in the case of a sample generated by processing another one (parent sample). [Format: 'YYYY-MM-DD'] -->	
+		<provider><![CDATA[]]></provider> <!-- Provider name and laboratory/institute of the sample (or one of its material) -->
+		<is_generic></is_generic> <!--  **ABS MANDATORY** Flag telling if the sample is 'generic': virtual sample representing a series of samples. BoolEnum: {yes, no} or {true, false} -->
+		<original_samples> <!-- **ONLY for generic sample - STRONGLY RECOMMENDED when exist in the database** -->
+			<sample_uid></sample_uid><!-- multiple -->  <!-- LINK to the existing UID of the original sample [‘SAMPLE_AB_yyyymmdd_123...’] (if present in the database) used to create this virtual generic sample -->
+		</original_samples>
+		<previous_sample_uid></previous_sample_uid> <!-- **COMPULSORY when there is a previous sample** LINK to the existing UID of the previous sample [‘SAMPLE_AB_yyyymmdd_123...’] that leaded to this one by some processing *during* the experiment: irradiation, chemical reaction, phase change, adsorption …) -->
+		<parent_sample_uid></parent_sample_uid> <!-- **COMPULSORY when exist in the database; calculated when previous_sample** LINK to the existing UID of the parent sample [‘SAMPLE_AB_yyyymmdd_123...’] (if present in the database) used to create this one by some processing (thermal cycle, irradiation, sieving, …) *before* the experiment (e.g. either during last experiment, or just prior this experiment) -->
+		
+	<!-- NATURAL TERRESTRIAL SAMPLE (**SPECIAL 'EARTH' CASE ONLY**): GEOLOCATION -->	
+		<!-- **OPTION ONLY for natural terrestrial sample not described with a 'natural terrestrial' matter (which already contain geolocation)** Remove the block if not the case -->
+		<body> <!-- **OPTION ONLY for natural terrestrial sample** -->
+			<!-- <uid>BODY_planet_Earth</uid> Link to the existing UID of Earth (from which the natural terrestrial sample should originate) [default: 'BODY_planet_Earth'] -->
+			<terrain_type></terrain_type> <!-- **MANDATORY for OPTION** Type of geological/geophysical terrain on Earth where the natural sample was recovered or measured. OpenEnum: {mineral surface, icy surface, organic surface, liquid surface, mixed surface types, mineral subsurface, icy subsurface, organic subsurface, liquid subsurface, mixed subsurface types, atmosphere, other, unknown} -->
+			<coordinate_system></coordinate_system> <!-- **ABS MANDATORY only when coordinate values are given** Coordinate system on Earth. OpenEnum: {WGS84} -->
+		</body>
+		<geolocation> <!-- **OPTION ONLY for natural terrestrial sample** -->
+			<place><![CDATA[]]></place> <!-- **MANDATORY for OPTION** place of recovery or measurement on Earth of the natural sample (name of geographic area or town) -->
+			<region><![CDATA[]]></region> <!-- **MANDATORY for OPTION** Region, state, province or county (administrative location) on Earth of the natural sample -->
+			<country_code></country_code> <!-- **MANDATORY for OPTION** 2-digit code of the country of the natural sample. Enum: {CH, DE, ES, FR, GB, HU, IT, PL} [norm ISO 3166-1 alpha-2] see  https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2 -->
+			<type></type> <!-- **ABS MANDATORY for OPTION only when coordinate are given** Type of geographic location. Enum: {point, line, box, polygon} -->
+			<coordinates> <!-- **SUB-OPTION** Geolocation (x,y,z coordinates) on Earth of recovery or measurement of the natural sample. The number of mandatory points depends on <type>: point=1, line>=2, box=2 (SW & NE corners), polygon>=3** -->
+				<coordinate><!-- multiple -->
+					<latitude></latitude> <!-- **ABS MANDATORY in SUB-OPTION** Latitude of the geographic location on Earth [float] (N decimal degree in 'WGS84') -->
+					<longitude></longitude> <!-- **ABS MANDATORY for OPTION** Longitude (E diretion) of the geographic location on Earth [float] (E decimal degree in 'WGS84') -->
+					<altitude></altitude> <!-- Altitude of the geographic location on Earth [float] (m in 'WGS84') -->
+				</coordinate> 
+			</coordinates>
+			<comments></comments> <!-- Any additional information or comments about the geolocation of this sample [blob] -->
+		</geolocation>
+		
+	<!-- SAMPLE PHYSICAL CHARACTERISTICS -->
+		<images> <!-- **OPTION** Pictures of the sample -->
+			<image><!-- multiple -->
+				<filename></filename> <!-- **MANDATORY for OPTION** File name (with only .png, .jpg, .gif extensions) of the picture of the sample. The file should be ziped with this xml file for import -->
+				<caption><![CDATA[]]></caption> <!-- Caption or comment on the picture of the sample -->
+			</image>
+		</images>
+		<surface_roughness></surface_roughness> <!-- Qualitative  surface roughness of the top layer of the sample -->
+		<size_unit></size_unit> <!-- **ABS MANDATORY** - Unit for the sample and layers dimensions: thicknesses, sample diameter (linear) and volume (cubic). Enum: {nm, micron, mm, cm, m} -->
+		<thickness></thickness> <!-- **ONLY if more accurate than sum of <layer_thickness>, otherwise will be calculated during import** Sample thickness. [Float] Unit: in “sample_size_unit”. 'infinite' for infinite thickness (simulation, ...) -->
+		<thickness_error></thickness_error> <!-- **ONLY if more accurate than sum of <layer_thickness_error>, otherwise will be calculated during import** Absolute uncertainty on sample thickness. [Float] Unit: in “sample_size_unit” -->
+		<mass></mass> <!-- **ONLY if more accurate than sum of <layer_mass> or <material_mass>, otherwise will be calculated during import** Sample mass. [Float] (Unit: in g) -->
+		<mass_error></mass_error> <!-- **ONLY if more accurate than sum of <layer_mass_error> or <material_mass_error>, otherwise will be calculated during import** Absolute uncertainty on sample mass. [Float] (Unit: in g) -->
+		<diameter></diameter> <!-- Sample diameter or minimum lateral dimension. [Float] Unit: in “sample_size_unit” -->
+		<volume></volume> <!-- Sample volume. [Float] Unit: in cubic “sample_size_unit”: nm3, µm3, mm3 or cm3 -->
+
+	<!-- SAMPLE COMMENTS -->	
+		<comments><![CDATA[]]></comments> <!-- Experimentalist comments about this sample (ex: origin, shape, size,…) [blob] -->
+		
+	<!-- SAMPLE SUBSTRATE -->
+		<substrate_material></substrate_material> <!-- **MANDATORY** Name or composition of sample substrate materials (put ‘NULL’ if no substrate) -->
+		<substrate_comments><![CDATA[]]></substrate_comments> <!-- Additional information on substrate, or cell: Number, type, configuration, thickness of substrate(s) [blob] -->
+
+	<!-- SAMPLE ENVIRONMENT -->
+		<parameters_environment>
+		<!-- Describe the environment of the sample just after sample formation and before any spectrum recording. It can be its storage conditions if not directly used. All these parameters can be modified for each spectrum of the experiment (in the "spectra" part of the 'experiment-spectra.xml' file) to describe the effective conditions during each spectrum recording -->
+			<time_unit></time_unit> <!-- **MANDATORY when value of time (T, P, fluid)**- Unit of time of the experiment (except for "irradiation"). Enum: {s, min, h, d} -->
+
+		<!-- SAMPLE ENVIRONMENT: TEMPERATURE -->
+			<temperature>
+				<unit></unit> <!-- **ABS MANDATORY** Unit of temperature. Enum: {K, C, F} -->
+				<value></value> <!-- **ABS MANDATORY** Effective temperature of the sample after sample formation. [Float] Unit: in “temperature_unit” -->
+				<error></error> <!-- **MANDATORY** Absolute uncertainty on effective temperature of the sample [Float] Unit: in “temperature_unit” -->
+				<time></time> <!-- Total duration of the stage the sample was kept at this temperature after sample formation. [Float] Unit: in “time_unit” -->
+				<time_error></time_error> <!-- Absolute uncertainty on total duration of the stage [Float] Unit: in “time_unit” -->
+				<max></max> <!-- **MANDATORY** Maximum temperature (annealing, ...) reached by the sample after sample formation. [Float] Unit: in “sample_temperature_unit” -->
+				<max_error></max_error> <!-- Absolute uncertainty on maximum temperature [Float] Unit: in “temperature_unit” -->
+				<max_time></max_time> <!-- Total duration of the stage at maximum temperature after sample formation. [Float] Unit: in “time_unit” -->
+				<comments><![CDATA[]]></comments> <!-- Comments about the temperature environment of the sample after sample formation. Errors on T max time... [blob] -->
+			</temperature>
+	      
+		<!-- SAMPLE ENVIRONMENT: FLUID SURROUNDING THE SAMPLE -->
+			<fluid> <!-- **OPTION except first KW** -->
+				<type></type> <!-- **MANDATORY** Type of fluid (plasma, gas, or liquid) in contact with the sample after sample formation. Enum: {atomic gas, plasma, molecular gas, molecular liquid, liquid solution, ambient air, purged air, vacuum, other} -->
+				<temperature></temperature> <!-- **MANDATORY for 'type' = atomic gas, plasma, molecular gas, molecular liquid, liquid solution, ambient air, or purged air** Temperature of the fluid (gas or liquid) in contact with the sample after sample formation. [Float] Unit: in “temperature_unit” -->
+				<temperature_error></temperature_error> <!-- Absolute uncertainty on the temperature of the fluid [Float] Unit: in “temperature_unit” -->
+				<pressure_unit></pressure_unit> <!-- **MANDATORY when <pressure> has a value** Unit of fluid pressure. Enum: {Pa, hPa, MPa, GPa, mbar, bar, atm, torr} -->
+				<pressure></pressure> <!-- **MANDATORY** Total pressure of the fluid (gas or liquid) in contact with the sample after sample formation. [Float] Unit: in “fluid_pressure_unit” -->
+				<pressure_error></pressure_error> <!-- Absolute uncertainty on the total pressure of the fluid [Float] Unit: in “fluid_pressure_unit”  -->
+				<ph></ph> <!-- pH of the aqueous liquid solution in contact with the sample after sample formation [Float] -->
+				<ph_error></ph_error> <!-- Absolute uncertainty on the pH [Float] -->
+				<time></time> <!-- Total duration of the sample-fluid contact at these temperature and pressure after sample formation. [Float] Unit: in “time_unit” -->
+				<time_error></time_error> <!-- Absolute uncertainty on the total duration of the sample-fluid contact at these temperature and pressure after sample formation [Float] Unit: in “time_unit” -->		 
+			<!-- SAMPLE ENVIRONMENT: FLUID COMPOSITION -->
+				<!-- Detailed fluid composition in contact with the sample after sample formation and before any spectrum recording --> 
+				<!-- **MANDATORY at least one block for 'type' = atomic gas, plasma, molecular gas, molecular liquid, or liquid solution** -->
+				<composition_matters> <!-- **COMPULSORY OPTION when fluid is a matter** -->
+					<composition_matter><!-- multiple --> 
+						<uid></uid> <!-- **ABS MANDATORY for OPTION** LINK to the existing UID of the molecule (gas or liquid) in contact with the sample [‘MOLEC_(Isotopic)Chemicalformula(Letter)’, ‘MOLION_(Isotopic)ChemicalformulaCharge(Letter)’, 'MOLRAD_' or 'MOLRADION_'] -->
+						<mole_fraction></mole_fraction> <!-- **MANDATORY for OPTION** Mole fraction of the fluid matter (liquid solution, liquid or gas mixtures, …) in contact with the sample [Float] -->
+						<mole_fraction_error></mole_fraction_error> <!-- Absolute uncertainty on mole fraction [Float] -->
+					</composition_matter>
+				</composition_matters>
+				<!-- or -->
+				<composition_species>
+					<composition_specie><!-- multiple -->
+						<uid></uid> <!-- **ABS MANDATORY** LINK to the existing UID of the specie (gas or liquid) in contact with the sample [‘MOLEC_(Isotopic)Chemicalformula(Letter)’, ‘MOLION_(Isotopic)ChemicalformulaCharge(Letter)’, 'MOLRAD_' or 'MOLRADION_'] or [Atom: ‘ATOM_(Z)Symbol’ or 'ATION_(Z)SymbolCharge'] -->
+						<mole_fraction></mole_fraction> <!-- **MANDATORY** Mole fraction of the gas or liquid specie in contact with the sample [Float] -->
+						<mole_fraction_error></mole_fraction_error> <!-- Absolute uncertainty on mole fraction [Float] -->
+					</composition_specie>
+				</composition_species>
+				<comments><![CDATA[]]></comments> <!-- Experimentalist comments about the fluid composition and environment of the sample after sample formation [blob] -->
+			</fluid>
+	      
+		<!-- SAMPLE ENVIRONMENT: MECHANICAL PRESSURE APPLIED TO THE SAMPLE -->
+			<pressure> <!-- **OPTION** -->
+				<unit></unit> <!-- **MANDATORY when <pressure>, <max> or <layer_formation_pressure> has a value** Unit of mechanical pressure. Enum: {Pa, hPa, MPa, GPa, mbar, bar, atm, torr} -->
+				<value></value> <!-- **MANDATORY for OPTION** Effective mechanical pressure applied to the sample after sample formation. [Float] Unit: in “pressure_unit” -->
+				<error></error> <!-- Absolute uncertainty on the effective mechanical pressure [Float] Unit: in “pressure_unit” -->
+				<time></time> <!-- Total duration of the stage this mechanical pressure was applied to the sample after sample formation. [Float] Unit: in “time_unit” -->
+				<time_error></time_error> <!-- Absolute uncertainty on total duration of the stage [Float] Unit: in “time_unit” -->
+				<max></max> <!-- Maximum mechanical pressure applied to the sample after sample formation. [Float] Unit: in “pressure_unit” -->
+				<max_error></max_error> <!-- Absolute uncertainty on maximum mechanical pressure [Float] Unit: in “pressure_unit” -->
+				<max_time></max_time> <!-- Total duration of the mechanical pressuring stage at maximum pressure [Float] Unit: in “time_unit” --> 
+				<comments><![CDATA[]]></comments> <!-- Comments about the pressure and stress environment of the sample after sample formation. Errors on P max time [blob] -->
+			</pressure>
+			
+		<!-- SAMPLE ENVIRONMENT: MECHANICAL STRESS -->
+			<stress> <!-- **OPTION** -->
+				<type></type> <!-- **MANDATORY for OPTION** Type of stress applied on the sample after sample formation.  Enum: {normal uniaxial tension, normal uniaxial compression, simple shear, normal biaxial tension, normal biaxial compression, cylindrical normal tension, cylindrical normal compression, isotropic normal tension, isotropic normal compression, combined biaxial, combined triaxial, other, unknown, no} -->
+				<unit></unit> <!-- **MANDATORY when stress value** Unit of stress. Enum: {Pa, hPa, MPa, GPa, bar} -->
+				<value></value> <!-- **MANDATORY for OPTION** Average stress applied on the sample (Force / Area) after sample formation. [Float] Unit: in “sample_pressure_unit”-->
+				<error></error> <!-- Absolute uncertainty on the average stress [Float] Unit: in “sample_pressure_unit”-->
+				<comments><![CDATA[]]></comments> <!-- Comments about the stress environment applied on the sample after sample formation (orientation of the forces) [blob] -->
+			</stress>
+
+		<!-- SAMPLE ENVIRONMENT: IRRADIATION -->
+			<!-- Detailed irradiations conditions of the sample after sample formation and BEFORE ANY SPECTRUM RECORDING -->
+			<irradiations> <!-- **OPTION** -->
+				<irradiation><!-- multiple -->
+					<source></source> <!-- Type of source of irradiation or bombardment of the sample. Free List: {X generator, VUV lamp, H2 lamp, Hg lamp, Ar lamp, Ar+ laser, Ar+ laser Raman, Ar+ WaveTrain laser Raman, He-Ne laser Raman, Nd:YAG laser Raman, synchrotron radiation, ions accelerator, particle gun,...} -->
+					<filter></filter> <!-- Any filter (optical, electric, magnetic, … ) applied to the irradiation or bombardment source -->
+					<!-- <irradiation_chronology> is fixed. Enum: {before spectrum} -->
+					<time_unit></time_unit> <!-- **MANDATORY when time value** Unit of time of irradiation. Enum: {s, min, h, d} -->
+					<time></time> <!-- **MANDATORY for OPTION, or fill "particle_fluence", or "radiant_fluence"** Total irradiation or bombardment time of the sample after sample formation. [Float] Unit: in “time_unit” -->
+					<time_error></time_error> <!-- Absolute uncertainty on the total irradiation or bombardment time of the sample after sample formation. [Float] Unit: in “time_unit” -->
+				<!-- IRRADIATION: PARTICLE -->
+					<particle>
+						<family></family> <!-- **ABS COMPULSORY for OPTION** Family of particle used to irradiate or bombard the sample. Enum: {photons, fundamental particles, atoms and molecules, condensed matter} -->
+						<type></type> <!-- **MANDATORY for OPTION** Type of irradiation (photons of all energies) or particle bombardment (ions, electrons, …) of the sample. Enum: {gamma photons, X photons, VUV photons, UV photons, Vis photons, NIR photons, MIR photons, micro-waves, electrons, protons, neutrons, atoms, atomic ions, molecules, molecular ions, molecule clusters, solid material, liquid material} -->
+						<uid></uid> <!-- **MANDATORY for OPTION for atoms, atomic ions, molecules, molecular ions** LINK to the existing UID of the atom, atomic ion, molecule, molecular ion used to bombard the sample [‘ATOM_(Z)Symbol’ or 'ATION_(Z)SymbolCharge', ‘MOLEC_(Isotopic)Chemicalformula(Letter)’, ‘MOLION_(Isotopic)ChemicalformulaCharge(Letter)’, 'MOLRAD_' or 'MOLRADION_'] -->
+						<energy_unit></energy_unit> <!-- **MANDATORY when energy value** Unit of energy of the particles (for irradiation processing). Enum: {J, kJ, eV, keV, MeV, angstrom, nm, micron, cm-1} the last 4 units only for photons -->
+						<energy></energy> <!-- **MANDATORY for OPTION** Energy of the particles irradiating or bombarding the sample surface. [Float] Unit: in “particle_energy_unit”-->	
+						<energy_distribution></energy_distribution> <!-- Description of energy distribution of the particles (photons, ions, electrons, …) irradiating or bombarding the sample surface -->
+						<flux></flux> <!-- **MANDATORY for OPTION, or fill "particle_fluence", or "radiant_fluence", or "radiant_flux" & "time"** Irradiation or bombardment flux in number of particles per unit time and unit surface of the sample. [Float] Unit: particles.s-1.m-2 -->
+						<flux_error></flux_error> <!-- Absolute uncertainty on the irradiation or bombardment flux. [Float] Unit: particles.s-1.m-2 -->
+						<fluence></fluence> <!-- **MANDATORY for OPTION, or fill "particle_flux" & "time", or "radiant_fluence", or "radiant_flux" & "time"** Total particle fluence (dose) of irradiation or bombardment in number of particles per unit received by the sample surface after sample formation. [Float] Unit: particles.m-2 -->
+						<fluence_error></fluence_error> <!-- Absolute uncertainty on the total particle fluence (dose). [Float] Unit: particles.m-2 -->
+					</particle>
+				<!-- IRRADIATION: RADIANT FLUX -->
+					<radiant>
+						<flux_unit></flux_unit> <!-- **MANDATORY when radiant flux value** Unit of radiant flux (irradiance: energy received per unit time and unit surface). Enum: {J.s-1.m-2, J.s-1.mm-2, J.s-1.micron-2, eV.s-1.m-2, eV.s-1.mm-2, eV.s-1.micron-2, keV.s-1.m-2, MeV.s-1.m-2, erg.s-1.m-2, erg.s-1.mm-2, erg.s-1.micron-2} -->
+						<flux></flux> <!-- **MANDATORY for OPTION, or fill "radiant_fluence", or "particle_fluence", or "particle_flux " & "time"** Radiant flux (irradiance: energy per unit time and unit surface) of irradiation or bombardment of the sample surface [Float] Unit: in "radiant_flux_unit" -->
+						<flux_error></flux_error> <!-- Absolute uncertainty on the radiant flux (irradiance) [Float] Unit: in "radiant_flux_unit" -->
+						<fluence></fluence> <!-- **MANDATORY for OPTION, or fill "radiant_flux" & "time", or "particle_fluence", or "particle_flux" & "time"** Total irradiation or bombardment radiant fluence (radiant dose or radiant exposure: energy per unit surface) received by the sample surface after sample formation. [Float] Unit: in "radiant_flux_unit".s -->
+						<fluence_error></fluence_error> <!-- Absolute uncertainty on the total radiant fluence (radiant dose or radiant exposure). [Float] Unit: in "radiant_flux_unit".s -->
+					</radiant>
+					<comments><![CDATA[]]></comments> <!-- Comments about the irradiation conditions of the sample after sample formation [blob] -->
+				</irradiation>
+			</irradiations>
+		</parameters_environment>
+			
+	<!-- SAMPLE DOCUMENTATION AND PUBLICATIONS (OPTION) -->
+		<documentations> <!-- **OPTION** Documentations about the sample -->
+			<documentation><!-- multiple -->
+				<name><![CDATA[]]></name> <!-- Name of the documentation -->
+				<filename><![CDATA[]]></filename> <!-- **MANDATORY for OPTION** File name (with extension) of documentation (pdf file). This image file should be zipped with the xml file -->
+			</documentation>
+		</documentations>
+		<publications> <!-- **OPTION** -->
+			<publication_uid></publication_uid><!-- multiple --> <!-- LINK to the existing UID of the publication describing the sample and its processings [‘PUBLI_FirstAuthorName_Year(Letter)’] -->
+		</publications>
+
+	<!-- SAMPLE LAYERS ORGANIZATION -->
+		<layer_addition></layer_addition> <!-- **MANDATORY only for 2 layers or more** Any information on how the layers are added one over the other at the material level in the sample -->
+
+	<!-- LAYERS -->		
+		<layers> <!-- **ABS MANDATORY at least one** Layers constituting the sample -->
+			<layer><!-- multiple -->
+				<import_mode>first import</import_mode> <!-- **ABS MANDATORY** Mode of import of 'layer' data. Enum: {first import, inherited, ignore, draft, no change, correction} -->
+				<!-- <layer_uid> is calculated -->
+
+			<!-- LAYER NAME -->
+				<name></name> <!-- Name of layer given by the experimentalist. Should contain explicit info on the layer (+ properties) and constituting materials. Can be the same as sample name if only one layer. Default name will be 'Layer #n' -->
+
+			<!-- LAYER ORGANIZATION IN SAMPLE -->
+				<order></order> <!-- **ABS MANDATORY** Position of layer into the sample (bottom to top : from 1 to n). Must be unique for this sample [Integer] -->
+				<type></type> <!-- **MANDATORY** Type of layer, even for sample that consist of a single grain. Enum: {granular, compact raw, compact, crystal, pellet, single grain, grains, aerosols, clusters, fluid, various, other, unknown} -->
+
+			<!-- LAYER PHYSICAL CHARACTERISTICS IN SAMPLE -->
+				<thickness></thickness> <!-- **MANDATORY except for generic sample** Layer thickness. [Float] Unit: in “sample_size_unit”. 'infinite' for infinite thickness (simulation, ...) -->
+				<thickness_error></thickness_error> <!-- **MANDATORY when thickness value, except for generic sample** Absolute uncertainty on layer thickness. [Float] Unit: in “sample_size_unit” -->
+				<mass></mass> <!-- **ONLY if more accurate than sum of <material_mass>, otherwise will be calculated during import** Layer mass. [Float] (Unit: in g) -->
+				<mass_error></mass_error> <!-- **ONLY if more accurate than sum of <material_mass_error>, otherwise will be calculated during import** Absolute uncertainty on layer mass. [Float] (Unit: in g) -->
+				<texture></texture> <!-- **MANDATORY** Layer macroscopic texture (at scale above material grains). OpenEnum: {muddy, earthy, pulverulent, loose fine grained, loose coarse grained, loose granular, sintered granular, cemented granular, mixed granular, compact, compact glassy, compact poor grained, compact fine grained, compact coarse grained, compact lamellar, compact fibrous, compact crystal, compact mixed, single grain, individual grains, aggregated grains, isolated aerosols, aggregated aerosols, clusters, liquid, gaseous, other, unknown} -->
+				<porosity_type></porosity_type> <!-- **MANDATORY** Type of porosity of the layer (at scale above material grains). OpenEnum: {particulate, porous, open pores, closed pores, without pores, other, unknown} -->
+				<compacity></compacity> <!-- Compacity of the layer (1-porosity) [Float] -->
+				<compacity_error></compacity_error> <!-- Absolute uncertainty on the compacity of the layer [Float] -->
+				<density></density>  <!-- Density of the layer [Float] (g/cm3) -->
+				<density_error></density_error>  <!-- Absolute uncertainty on the density of the layer [Float] (g/cm3) -->
+			<!-- LAYER COMMENTS -->
+				<comments><![CDATA[]]></comments> <!-- Experimentalist comment about this layer [blob] -->
+
+			<!-- LAYER FORMATION CONDITIONS -->
+				<formation_mode></formation_mode> <!-- **MANDATORY** Mode of formation of the layer. FreeList: {processing of parent sample, single gas deposition, gas mixture deposition, gases codeposition, EBPVD, CVD, PECVD, ion-beam sputtering, gas flow sputtering, fractionated sublimation, crystal growth from liquid, crystal growth from gas, solid-solid phase transition, aerosols in flux, aggregates in jet, liquid condensation, natural deposition, manual deposition, pressing grains, pressing granular material, pressing compact material, mechanical slabing, laser slabing, simulated surface, simulated aerosols, multiple, ...} -->
+				<formation_rate></formation_rate> <!-- Formation rate of the layer and its uncertainty. Give the unit -->
+				<formation_temperature></formation_temperature> <!-- **MANDATORY** Formation temperature of the layer (for synthetic samples). [Float] Unit: “sample_temperature_unit” -->
+				<formation_temperature_error></formation_temperature_error> <!-- Absolute uncertainty on the formation temperature of the layer (for synthetic samples). [Float] Unit: “sample_temperature_unit” -->
+				<formation_pressure></formation_pressure> <!-- Mechanical pressure applied on the layer during formation. [Float] Unit: “sample_pressure_unit” -->
+				<formation_pressure_error></formation_pressure_error> <!-- Absolute uncertainty on the mechanical pressure applied on the layer during formation. [Float] Unit: “sample_pressure_unit” -->
+				<formation_fluid_pressure></formation_fluid_pressure> <!-- Pressure of the fluid surrounding the layer during formation. [Float] Unit: “sample_fluid_pressure_unit” -->
+				<formation_fluid_pressure_error></formation_fluid_pressure_error> <!-- Absolute uncertainty on the pressure of the fluid surrounding the layer during formation. [Float] Unit: “sample_fluid_pressure_unit” -->
+				<formation_comments><![CDATA[]]></formation_comments> <!-- Experimentalist additional information about the formation stage of this layer [blob] -->
+
+			<!-- LAYER COMPOSITION -->
+				<materials_mixing></materials_mixing> <!-- **MANDATORY** Mode of mixing of the material grains in the layer. Enum: {single material, homogeneous mixing, heterogeneous mixing, grains in fluid, fluid in porous solid, spatial distribution} -->
+
+			<!-- CHOICE OF MATTER OR MATERIAL -->				
+				<!-- **if the layer is composed only of matter(s) then fill ONLY the <matters> block. If it is composed only of material(s), then fill ONLY the <materials> block**. You can then remove the unused <materials> or <matters> block, respectively -->
+
+			<!-- MATTERS -->	
+				<matters> <!-- **ABS COMPULSORY OPTION for matters** Matters constituting the layer -->
+					<matter> <!-- multiple -->
+						<uid></uid> <!-- **ABS MANDATORY for OPTION** LINK to the existing UID of the matter constituting the layer (only if no further layer or sample processing of this matter affected its composition and phase). [‘MATFLUID_Species_Code_Provider_yyyymmdd’, ‘MATMIN_MineralMatter_AB_yyyymmdd', -	‘MATSOL_SolidMatter_AB_yyyymmdd’, ‘MATCARB_carbonaceous.matter_AB_yyyymmdd’, ‘MATXXX_ExtraterrestrialName_AB_yyyymmdd’ ...] -->
+
+					<!-- MATTER ARRANGEMENT AND ABUNDANCE IN LAYER -->
+						<!-- Provide below abundances (absolute or fractional) but homogeneously for all matters and materials (next block) -->
+						<arrangement><![CDATA[]]></arrangement> <!-- Relative arrangement of the matter grains within the layer -->
+						<mass></mass> <!-- **MANDATORY for OPTION or fill <mass_fraction>** Total mass of the matter in the layer (unit: g) -->
+						<mass_error></mass_error> <!-- **MANDATORY when <mass> has a value** Absolute uncertainty on total mass of the matter in the layer [Float] (unit: g) -->
+						<mass_fraction></mass_fraction> <!-- **MANDATORY for OPTION or fill <mass>** Mass fraction of the matter in the layer (can be calculated from matter masses) [Float] -->
+						<mass_fraction_error></mass_fraction_error> <!-- **MANDATORY when <mass_fraction> has a value** Absolute uncertainty in mass fraction of the matter in the layer (c an be calculated from material mass errors)[Float] -->
+						<abundance_comments><![CDATA[]]></abundance_comments> <!-- Additional information or comments about the abundance of this matter in the layer [blob] -->
+					<!-- MATTER COMMENTS -->	
+						<additional_comments><![CDATA[]]></additional_comments> <!-- Experimentalist additional information or comments about this matter (small changes relative to the matter description...) [blob] -->
+					</matter>		
+				</matters>
+
+			<!-- MATERIALS -->
+				<materials> <!-- **ABS MANDATORY when there is no matter** - Materials constituting the layer -->
+					<material><!-- multiple -->
+					<!-- MATERIAL IMPORT MODE AND INDEX -->
+						<import_mode></import_mode> <!-- **ABS MANDATORY** Mode of import of 'material' data. Enum: {first import, inherited, use existing, ignore, draft, no change, correction} -->
+						<uid></uid> <!-- **ABS MANDATORY to CREATE. Except when "import_mode"='use existing': it is then the LINK to the UID of the existing material** Unique identifier code (UID) given to the material and should be of the style ‘MATERIAL_AB_yyyymmdd_123...’ where ‘AB’ is your initials, 'yyyymmdd' the current date, and '123...' should be alphanumeric ascii (only with '_'), with no more than 6 characters -->
+						<relevance></relevance> <!-- **MANDATORY** Relevance of the material in the layer. Enum: {main - major, main - minor, impurity, product, precursor, unknown} -->
+
+					<!-- MATERIAL ARRANGEMENT AND ABUNDANCE IN LAYER -->
+						<!-- When the abundance is fully known at the species or constituent level, then give it at the lowest possible level. The abundances (and errors) at the material level will thus be calculated during import where the fields are kept empty. Provide below abundances for materials (absolute or fractional, but homogeneously for all materials and matters (previous block)) only when values are known only at this level or more accurately than the sum of the lower levels -->
+						<arrangement><![CDATA[]]></arrangement> <!-- Relative arrangement of the material grains within the layer -->
+						<mass></mass> <!-- **MANDATORY or fill <mass_fraction>** Total mass of the material in the layer (unit: g) -->
+						<mass_error></mass_error> <!-- **MANDATORY when <mass> has a value** Absolute uncertainty on total mass of the material in the layer [Float] (unit: g) -->
+						<mass_fraction></mass_fraction> <!-- **MANDATORY or fill <mass>** Mass fraction of the material in the layer (can be calculated from material masses) [Float] -->
+						<mass_fraction_error></mass_fraction_error> <!-- **MANDATORY when <mass_fraction> has a value** Absolute uncertainty in mass fraction of the material in the layer (can be calculated from material mass errors) [Float] -->
+						<abundance_comments><![CDATA[]]></abundance_comments> <!-- Additional information or comments about the abundance of this material in the layer [blob] -->
+					<!-- EXISTING MATERIAL COMMENTS -->	
+						<additional_comments><![CDATA[]]></additional_comments> <!-- **ONLY when import mode = use existing** Experimentalist additional comments about this material when used as ‘use existing’ (small changes relative to the material description...) [blob] -->
+
+					<!-- **When "material_import_mode"='use existing': All Key Words below SHOULD NOT BE FILLED** - You can then remove all lines below up to and including the </constituents> tag -->
+
+					<!-- MATERIAL NAME AND REFERENCE -->
+						<name></name> <!-- **ABS MANDATORY** Material name. Should contain explicit info on the material: name and some properties -->
+						<family></family> <!-- **MANDATORY** Family of the material. Enum: {fluid, solid, mineral, carbonaceous, extraterrestrial, mixed, other, unknown} -->
+						<local_reference_code></local_reference_code> <!-- Possible reference code given to the material -->
+
+					<!-- MATERIAL ORIGIN -->
+						<origin></origin> <!-- **ABS MANDATORY** General origin of the  material. Enum: {natural terrestrial, extraterrestrial, planetary, laboratory, commercial, simulated} -->	
+
+					<!-- MATERIAL GRAIN SIZE DISTRIBUTION AND TEXTURE -->
+						<grain> <!-- OPTION -->
+							<size_unit></size_unit> <!-- **COMPULSORY when <size_median/_min/_max> used** - Unit for the material grain sizes (diameter). Enum: {nm, micron, mm, cm} -->
+							<size_method><![CDATA[]]></size_method> <!-- Description of the method used for grain size selection and of grain size (median/width or min/max) determination [blob] -->
+							<sizes> <!-- **OPTION** Size distribution of the material grains -->
+								<size><!-- multiple -->
+									<median></median> <!-- **MANDATORY for OPTION, or min & max** Median size (diameter) of material grains. [Float] Unit: in “material_grain_size_unit” -->
+									<width></width> <!-- Full width at half maximum of the size distribution (diameter) of material grains. [Float] Unit: in “material_grain_size_unit” -->
+									<min></min> <!-- **MANDATORY for OPTION, or median** Smallest size (diameter) of material grains of this size range. [Float] Unit: in “material_grain_size_unit” -->
+									<max></max> <!-- **MANDATORY for OPTION, or median** Largest size (diameter) of material grains of this size range. [Float] Unit: in “material_grain_size_unit” -->
+									<fraction></fraction> <!-- Mass fraction of material grains comprised between size min and size max (diameter) [Float] -->
+									<fraction_error></fraction_error> <!-- Absolute uncertainty on the mass fraction of material grains comprised between size min and size max (diameter) [Float] -->
+									<shape></shape> <!-- Description of the shape of the individual material grains (granular material) of this size range. Enum: {amorphous, irregular, equant, reniform, globular, spherical, flakes, platy, tabular, lathlike, columnar, acicular, capillary, cubic, cylindrical, hexagonal, octahedral, prismatic, pyramidal, rhombohedral, nuggets, botryoidal, dendritic, spheres aggregate, aggregate, fluid, other, unknown} -->
+								</size>
+							</sizes>
+							<size_distribution><![CDATA[]]></size_distribution> <!-- Description and parameters of the grain size distribution of the material [blob] -->
+							<texture></texture> <!-- Description of the global texture of the grains. OpenEnum: {clay-like, silt-like, compact, compact with defects, compact with bubbles, compact porous, compact microporous, lamellar, fibrous, compact mixed, complex, molecular layer, cluster, liquid, gaseous, other, unknown} -->
+							<compacity></compacity> <!-- Compacity of the grains of the material (fraction of solid volume per grain volume unit) -->
+							<compacity_error></compacity_error> <!-- Absolute uncertainty on the compacity of the grains of the material -->
+							<density></density> <!-- Density of the grains of the material [Float] (g/cm3) -->
+							<density_error></density_error> <!-- Absolute uncertainty on bulk density of the grains of the material [Float] (g/cm3) -->
+						</grain>
+						
+					<!-- MATERIAL COMMENTS -->	
+						<comments><![CDATA[]]></comments> <!-- Experimentalist additional information or comments about this material [blob] -->
+
+					<!-- PUBLICATIONS ON MATERIAL -->
+						<publications> <!-- **OPTION** -->
+							<publication_uid></publication_uid><!-- multiple --> <!-- LINK to the existing UID of the publication describing the material and its eventual formation/processing [‘PUBLI_FirstAuthorName_Year(Letter)’] -->
+						</publications>
+
+					<!-- MATERIAL CONSTITUENTS MIXING -->
+						<constituents_mixing></constituents_mixing> <!-- **MANDATORY** How the constituents are mixed at the sub-grain level in the material grains. OpenEnum: {single phase, multi-phases, endmembers polyphase, matrix with inclusions, grains with inclusions, filled agglomerate, coated grains, concentric zoning, sector zoning, layer zoning, interlayering, foam, emulsion, colloidal solution, complex mixing, adsorbate-adsorbent, other, unknown} -->
+
+					<!-- CHOICE OF BASIC CONSTITUENT(S) or 'STANDARD' CONSTITUENT(S) -->
+						<!-- **if some constituent(s) of the material can be described by a fundamental constituent then fill one <basic_constituent> block for each of them. If not, then fill one <constituent> block for each**. If the <constituents> or <basic_constituents> block is unused, then you can remove it -->
+
+					<!-- BASIC CONSTITUENTS -->
+						<basic_constituents> <!-- **COMPULSORY OPTION for fundamental phases** Basic constituents composing the material grains -->
+							<basic_constituent> <!-- multiple -->
+							<!-- BASIC CONSTITUENT IMPORT MODE AND INDEX -->
+								<import_mode></import_mode> <!-- **ABS MANDATORY for OPTION** Mode of import of 'basic constituent' data. Enum: {first import, inherited, use existing, ignore, draft, no change, correction} -->
+								<uid></uid> <!-- **ABS MANDATORY to CREATE for OPTION. Except when "import_mode"='use existing': it is the LINK to the UID of the existing constituent** Unique identifier code (UID) given to the constituent and should be of the style ‘CONST_AB_yyyymmdd_123...’ where ‘AB’ is your initials, 'yyyymmdd' the current date, and '123...' alphanumeric ascii (only with '_'), with no more than 6 characters -->
+								<relevance></relevance> <!-- **ABS MANDATORY for OPTION** Relevance of the basic constituent in the material. Enum: {main - major, main - minor, impurity, product, precursor, unknown} -->	
+
+							<!-- BASIC CONSTITUENT ARRANGEMENT AND ABUNDANCE IN MATERIAL -->
+								<!-- **MANDATORY: at least one of <mass>, <mass_fration>, <mole> or <mole_fraction>** Provide below abundances (absolute or fractional) but homogeneously for all basic constituents and constituents (next block) -->
+								<arrangement></arrangement> <!-- **MANDATORY for OPTION** Relative arrangement of the constituent within the material grains. OpenEnum: {single phase, in multi-phases, homogeneous in multi-phases, heterogeneous in multi-phases, endmember in polyphase, matrix, inclusion, bubble, suspended particles, medium of suspension, in aggregate, in agglomerate, pore filling, coated core, coating shell, concentric zone, sector zone, layer zone, mixed-layer, complex intimate mix, sorbed phase, other, unknown} -->
+							<!-- ABUNDANCE IN MASS -->
+								<mass></mass> <!-- **MANDATORY for OPTION, or fill one of 3 others** Total mass of the basic constituent in the material [Float] (unit: g) -->
+								<mass_error></mass_error> <!-- **MANDATORY when <mass> has a value** Absolute uncertainty on the total mass of the basic constituent in the material [Float] (unit: g) -->
+								<mass_fraction></mass_fraction> <!-- **MANDATORY for OPTION, or fill one of 3 others** Mass fraction of the basic constituent in the material [Float] -->
+								<mass_fraction_error></mass_fraction_error> <!-- **MANDATORY when <mass_fraction> has a value** Absolute uncertainty on Mass fraction of the basic constituent in the material [Float] -->								
+							<!-- ABUNDANCE IN MOLE: **COMPULSORY OPTION to use only if all constituents of the material are “fundamental solids” of family 'molecular solid' or 'ionic solid' or “fundamental liquids”, but neither “fundamental minerals”, nor “standard constituents”** -->
+								<mole></mole> <!-- **MANDATORY for OPTION, or fill one of 3 others** Number of moles of basic constituent formula, as defined by the <solid_specie_number_min> or <liquid_specie_number_min> values [Float] (unit: in 'mol') -->
+								<mole_error></mole_error> <!--  **MANDATORY when <mole> has a value** Absolute uncertainty on the number of moles oof the basic constituent formula [Float] (unit: in 'mol') -->
+								<mole_fraction></mole_fraction> <!-- **MANDATORY for OPTION, or fill one of 3 others** Mole fraction of basic constituent [Float] -->
+								<mole_fraction_error></mole_fraction_error> <!-- **MANDATORY when <mole_fraction> has a value** Absolute uncertainty on mole fraction of the basic constituent [Float] -->
+								<abundance_comments><![CDATA[]]></abundance_comments> <!-- Additional information or comments about the abundance of this basic constituent in the material [blob] -->
+									
+							<!-- **When "basic_constituent_import_mode"='use existing': all Key Words below SHOULD NOT BE FILLED** - You can then remove all lines below up to and including the </comments> tag -->
+							
+							<!-- BASIC CONSTITUENT NAME AND INDEX -->
+								<name></name> <!-- **ABS MANDATORY for OPTION** Basic constituent name. May contain explicit info on the fundamental constituent or its variant: species name, specific abundance, and some constituent properties (phase, …), origin, ... -->
+								<fundamental_phase_uid></fundamental_phase_uid> <!-- **ABS MANDATORY for OPTION** LINK to the existing UID of the fundamental ‘solid’, ‘mineral’, or ‘liquid’ phase composing the material grains ['SOLID_SolidName’, or ‘SOLIDGROUP_GroupName’, ‘SOLIDSERIES_SeriesName’ or ‘MINERGROUP_GroupName’, ‘MINERSERIES_SeriesName’, ‘MINER_MineralName’ or 'LIQUID_LiquidName’ or ‘LIQUIDSERIES_SeriesName’] -->
+
+							<!-- FUNDAMENTAL SOLID PHASE: VARIABLE PARAMETERS -->
+								<!-- **OPTIONAL BLOCK, but COMPULSORY to change what is better known or different from the above fundamental solid** All unfilled values will be kept the same -->
+								<!-- The variable parameters are mostly used to provide more accurate composition of the actual solid: for variable solids or solid solution/hydration series, or when solid (sub-)groups are used for ill-defined solids. Also for adding replacement or impurity elements. Also used for changing structural info of equivalent crystalline fundamental solids for describing some related amorphous solids -->
+	
+								<solid_variables>
+								<!-- POLYTYPE -->
+									<polytype><!-- unique --> 
+									<!-- **keep only the actual polytype, if known** When filled it will replace the full list of polytypes -->
+										<name></name> <!-- Name of the actual solid polytype -->
+										<comments><![CDATA[]]></comments> <!-- Additional information on the solid polytype [blob] -->
+									</polytype>
+									
+								<!-- CHEMICAL COMPOSITION -->
+									<formula><![CDATA[]]></formula> <!--  Developed structural (empirical) chemical formula of the solid [Latex format] -->
+									<chemical_formula></chemical_formula> <!-- Developed global chemical formula of the solid -->
+									<hydration_number></hydration_number> <!-- Number or range of numbers of structural H2O in the solid -->
+									
+								<!-- POLYMERS PARAMETERS --> <!-- **ONLY for polymers**  -->
+									<polymer>
+										<monomer_arrangement></monomer_arrangement>	<!-- **MANDATORY only for polymers** Enum: {linear homopolymer, branched homopolymer,  sequence-controlled copolymer, alternating copolymer, periodic copolymer, statistical copolymer, random copolymer, block copolymer, stereoblock copolymer, branched Graft copolymer, branched star copolymer, other, unknown} -->
+										<terminal_function></terminal_function> <!-- **MANDATORY only for polymers** Terminating chemical function(s) of the polymer [LaTeX] --><monomer_number></monomer_number> <!-- **MANDATORY only for polymers, or next KW** Average number or range of numbers of monomers in the actual solid polymer molecules -->
+										<molar_mass></molar_mass> <!-- **MANDATORY only for polymers, or previous KW** Average molar mass or range of molar masses of the actual polymer molecules [g/mol] -->
+										<polymolecularity_index></polymolecularity_index> <!-- Polymolecularity index (or polydispersity index) of the numbers of monomers or molar masses of the actual polymer molecules -->
+										<crystallinity_degree></crystallinity_degree> <!-- Crystallinity degree of the actual solid polymer -->
+										<comments replace=""><![CDATA[]]></comments> <!-- Any additional information or comments on the polymer (polymer branching, ...) [blob] Flag 'replace': {yes, no} -->
+									</polymer>
+									
+								<!-- CHEMICAL FUNCTIONS AND BONDS -->
+									<chemical_functions full_definition=""> <!-- List of the different chemical functions present in the solid, except those already in the molecular "species". **FLAG ABS MANDATORY** Flag telling the mode of definition of the chemical functions of the actual solid. Flag 'full_definition': {yes, no} -->
+										<chemical_function><!-- multiple -->
+											<uid></uid> <!-- **ABS COMPULSORY** LINK to the existing UID of the chemical functions of the solid  [‘GROUPMOLEC_RGroupformula’, ‘GROUPION_ RGroupformulaCharge’, ‘GROUPRAD_ RGroupformula’, ‘MINION_IonformulaCharge’] -->
+											<number></number> <!-- Number or range of numbers of this chemical function present in the solid -->
+										</chemical_function>
+									</chemical_functions>
+									
+								<!-- MOLECULAR OR ATOMIC COMPOSITION -->
+									<isotope_mixture_type></isotope_mixture_type> <!-- **COMPULSORY when atomic isotopic abundance is not terrestrial** Type of isotopic mixture of the solid. Enum: {pure isotope, partly substituted, terrestrial abundance, specific abundance, unknown} -->
+										
+									<!-- **COMPULSORY to list the impurity, replacement or substituted molecules/atoms as well as the main molecules/atoms of the solid with changing numbers or when their isotopic abundance is not terrestrial** There is the choice either to fully redefine the solid composition, or only to add new species and modify some already defined. Two species with same <uid> but different <relevance> are considered as different species -->
+									<species full_definition=""> <!-- List of the different molecular or atomic species of the solid and their number. **FLAG ABS MANDATORY** Flag telling the mode of definition of the composition of the actual solid. Flag 'full_definition': {yes, no} -->	
+										<specie><!-- multiple --> 
+											<uid></uid> <!-- **ABS COMPULSORY** LINK to the existing UID of the molecular species (molecule or molecular ion) or element (atom or ion) composing the solid.  [‘MOLEC_(Isotopic)Chemicalformula(Letter)’, ‘MOLION_(Isotopic)ChemicalformulaCharge(Letter)’, 'MOLRAD_' or 'MOLRADION_']  or [‘ATOM_(Z)Symbol’ or 'ATION_(Z)SymbolCharge'] -->
+											<number_min></number_min> <!-- **MANDATORY** Total number of molecular/atomic species with fixed abundance OR minimum number for molecular/atomic species with variable abundance in solid solutions, n-hydrated solids (H2O), or in solid (sub-)group [Float] -->
+											<number_max></number_max> <!-- Maximum total number of molecular/atomic species with variable abundance in solid solutions, n-hydrated solids (H2O), or in solid (sub-)group [Float] -->
+											<isotope_mole_fraction></isotope_mole_fraction> <!-- **MANDATORY when molecule/atom isotopic abundance is not terrestrial** Mole fraction of the isotopic species in the isotopic mixture of this molecule/atom. Note: <number_min> should be still the nominal value for the normal species in the solid [Float] -->
+											<state></state> <!-- **MANDATORY** State of the molecular/atomic species inside the solid. OpenEnum: {constituent element, constituent cation, constituent anion, constituent mer, constituent molecular, molecular ion,  anionic radical, pure, mixed, matrix, monomers, dimers, multimers, solute, solvent, liquid solution, solid solution, clathrate network, clathrate guest, hydration, hydrated, in complex, physically adsorbed, chemically adsorbed, interlayer physically adsorbed, other, unknown} -->
+											<relevance></relevance> <!-- **ABS MANDATORY** Relevance of the molecular/atomic species in the solid. Enum: {main, replacement, substituted, impurity} -->
+										</specie>
+									</species>
+									<composition_comments replace=""><![CDATA[]]></composition_comments> <!-- Any additional information (range of values of x,n, sum(x+y+z), …) on the composition and formula of the solid [blob]. Flag 'replace': {yes, no} -->
+
+								<!-- OXIDES COMPOSITION -->
+									<oxides> <!-- **Full description needed, when changed** Description of oxides composition of the solid -->
+										<oxide><!-- multiple -->
+											<formula></formula> <!-- Chemical formula of different oxides composing the solid. Enum: {Ag2O, Al2O3, As2O3, As2O5, B, B2O3, BaO, BeO, Br, CO2, CaO, CdO, CeO2, Ce2O3, Cl, CoO, Co3O4, Cr2O3, Cs2O, CuO, Cu2O, F, Fe, FeO, Fe2O3, Fe3O4, Ga2O3, GeO2, H2O, HfO2, HgO, I, K2O, La2O3, Li2O, MgO, MnO, MnO2, Mn2O3, MoO3, N2O5, Na2O, Nd2O3, Nb2O5, NiO, O2, P2O5, PbO, PbO2, Pt2O3, PtO, Pt, Rb2O, S, SO2, SO3, SO4, Sb2O3, Sb2O5, Sc2O3, SeO2, SiO2, SnO, SnO2, SrO, Ta2O5, ThO2, TiO2, UO2, U3O8, VO2, V2O3, V2O5, WO3, Y2O3, ZnO, ZrO2}	-->
+											<mass_fraction></mass_fraction> <!-- Mass fraction (in %) of each type of oxide composing the actual solid [Float] -->
+										</oxide>
+									</oxides>
+									<oxides_comments><![CDATA[]]></oxides_comments> <!-- Any additional information (sum of oxides …) on the oxides composition of the solid [blob] -->
+									
+								<!-- CLASSIFICATION -->
+									<classification_group>NULL</classification_group> <!-- **MANDATORY for glasses or amorphised solids of equivalent crystalline solid => 'N/A'** Group of the solid in the classification. OpenEnum: {..., 04.01.01, 04.01.02, 04.01.03, ..., N/A [TBD]} -->
+									<classification_code>NULL</classification_code> <!-- **MANDATORY for glasses or amorphised solids of equivalent crystalline solid => 'N/A'** Code of the solid in the classification (Ex: 04.02.03.07 [TBD]) -->	
+									
+								<!-- CRYSTALLOGRAPHY -->
+									<phase_name></phase_name> <!-- Common name of the solid phase as used in the literature -->
+									<phase_type></phase_type> <!-- **COMPULSORY for glasses or amorphised solids of equivalent crystalline solid** Main type of phase of the solid. Enum: {crystalline, semicrystalline, paracrystalline, disordered, quasi-amorphous, amorphous, glassy, liquid, mixed, various, unknown} -->
+									<crystal_system></crystal_system> <!-- **COMPULSORY for glasses or amorphised solids of equivalent crystalline solid** Crystal lattice system of the solid. Enum: {triclinic, monoclinic, orthorhombic, trigonal, hexagonal, tetragonal, isometric (cubic), amorphous, N/A, various, unknown} -->
+									<crystal_class></crystal_class> <!-- **MANDATORY for glasses or amorphised solids => put 'N/A'** Crystalline class name of the solid. Enum: {pedial, pinacoidal, domatic, sphenoidal, prismatic, pyramidal, disphenoidal, dipyramidal, rhombohedral, ditrigonal-pyramidal, trapezohedral, hexagonal-scalenohedral, trigonal-dipyramidal, ditrigonal-dipyramidal, dihexagonal-pyramidal, dihexagonal-dipyramidal, scalenohedral, ditetragonal-pyramidal, ditetragonal-dipyramidal, tetartoidal, diploidal, hexatetrahedral, gyroidal, hexoctahedral, N/A, various, unknown} -->
+									<crystal_class_symbol></crystal_class_symbol> <!-- **MANDATORY for glasses or amorphised solids => put 'N/A'** Crystalline class (point group) Hermann-Mauguin short symbol (and Schönflies symbol) of the solid. Enum: {1 (C1), -1 (Ci), 2 (C2), m (Cs), 2/m (C2h), 222 (D2), mm2 (C2v), mmm (D2h), 3 (C3), -3 (S6), 32 (D3), 3m (C3v), -3m (D3d), 4 (C4), -4 (S4), 4/m (C4h), 422 (D4), 4mm (C4v), -42m (D2d), 4/mmm (D4h), 6 (C6), -6 (C3h), 6/m (C6h), 622 (D6), 6mm (C6v), -6m2 (D3h), 6/mmm (D6h), 23 (T), m-3 (Th), 432 (O), -43m (Td), m-3m (Oh), N/A, various, unknown} -->  
+									<crystal_spacegroup></crystal_spacegroup> <!-- **MANDATORY for glasses or amorphised solids => put 'N/A'** Crystalline Hermann-Mauguin symbol of symmetry space group in point group of the solid. Enum: {Aba2, Abm2, Ama2, Amm2, C2, C2/c, C2/m, C222, C222(1), Cc, Ccc2, Ccca, Cccm, Cm, Cmc2(1), Cmca, Cmcm, Cmm2, Cmma, Cmmm, F222, F23, F432, F-43c, F-43m, F4(1)32, Fd-3, Fd-3c, Fd-3m, Fdd2, Fddd, Fm-3, Fm-3c, Fm-3m, Fmm2, Fmmm, I222, I23, I2(1)2(1)2(1), I2(1)3, I4, I4/m, I4/mcm, I4/mmm, I41cd, I41md, I422, I432, I4cm, I4mm, I-4, I-42d, I-42m, I-43d, I-43m, I-4c2, I-4m2, I4(1), I4(1)/a, I4(1)/acd, I4(1)/amd, I4(1)22, I4(1)32, Ia-3, Ia-3d, Iba2, Ibam, Ibca, Im-3, Im-3m, Ima2, Imm2, Imma, Immm, P1, P-1, P2, P2/c, P2/m, P222, P222(1), P23, P2(1), P2(1)/c, P2(1)/m, P2(1)2(1)2, P2(1)2(1)2(1), P2(1)3, P3, P312, P31c, P31m, P321, P3c1, P3m1, P-3, P-31c, P-31m, P-3c1, P-3m1, P3(1), P3(1)12, P3(1)21, P3(2), P3(2)12, P3(2)21, P4, P4/m, P4/mbm, P4/mcc, P4/mmm, P4/mnc, P4/n, P4/nbm, P4/ncc, P4/nmm, P4/nnc, P422, P42bc, P42cm, P42mc, P42nm, P42(1)2, P432, P-4, P-42c, P-42m, P-42(1)c, P-42(1)m, P-43m, P-43n, P-4b2, P-4c2, P-4m2, P-4n2, P4(1), P4(1)22, P4(1)2(1)2, P4(1)32, P4(2), P4(2)/m, P4(2)/mbc, P4(2)/mcm, P4(2)/mmc, P4(2)/mnm, P4(2)/n, P4(2)/nbc, P4(2)/ncm, P4(2)/nmc, P4(2)/nnm, P4(2)22, P4(2)2(1)2, P4(2)32, P4(3), P4(3)22, P4(3)2(1)2, P4(3)32, P4bm, P4cc, P4mm, P4nc, P6, P6/m, P6/mcc, P6/mmm, P622, P6cc, P6mm, P-6, P-62c, P-62m, P-6c2, P-6m2, P6(1), P6(1)22, P6(2), P6(2)22, P6(3), P6(3)/m, P6(3)/mcm, P6(3)/mmc, P6(3)22, P6(3)cm, P6(3)mc, P6(4), P6(4)22, P6(5), P6(5)22, Pa-3, Pba2, Pbam, Pban, Pbca, Pbcm, Pbcn, Pc, Pca2(1), Pcc2, Pcca, Pccm, Pccn, Pm, Pm-3, Pm-3m, Pm-3n, Pma2, Pmc2(1), Pmm2, Pmma, Pmmm, Pmn2(1), Pmmn, Pmna, Pn-3, Pn-3m, Pn-3n, Pna2(1), Pnc2, Pnma, Pnn2, Pnna, Pnnm, Pnnn, R3, R32, R3c, R3m, R-3, R-3c, R-3m, N/A, various, unknown} -->
+									
+								<!-- CRYSTAL SITES -->
+								<!-- **OPTIONAL BLOCK** There is the choice either to fully redefine the crystal sites, or only to add new sites and modify some already defined. In both cases all the species in the site should be listed --> 
+									<crystal_sites full_definition=""> <!-- Crystallographic sites of the solid structure. **FLAG ABS MANDATORY for OPTION** Flag telling the mode of definition of the crystal sites of the actual solid. Flag 'full_definition': {yes, no} -->
+										<crystal_site><!-- multiple --> 
+											<label></label> <!-- **COMPULSORY for OPTION** Label of the crystallographic site of the atomic species in the solid structure. FreeList: {M1, M2, M3, M4, O1, O2, O3, O4, O5, O6, O7, O8,…} -->
+											<type></type> <!-- **MANDATORY for OPTION** Type of the crystallographic site of the molecular/atomic species in the solid structure. Enum: {main, substitutional, isovalent substitutional, aliovalent substitutional, interstitial, split interstitial, topological defect, vacancy, unknown} -->
+											<number></number> <!-- **MANDATORY for OPTION** Numbers of equivalent crystallographic sites in the elementary cell of the solid structure [integer] -->
+											<wp></wp> <!-- Wyckoff position code of the crystallographic site of the solid structure (multiplicity, Wyckoff letter, site symmetry). Ex: ‘4u1’, ‘2m.2.’, ‘1e222’ -->
+											<species> <!-- **MANDATORY for OPTION** List and state of the atomic species in the crystallographic site -->
+												<specie><!-- multiple -->
+													<uid></uid> <!-- **MANDATORY** LINK to the existing UID of the natural atomic species  [‘ATOM_(Z)Symbol’ or 'ATION_(Z)SymbolCharge'] -->
+													<coordinence></coordinence> <!-- Coordinence of the atomic species and associated geometry of the crystallographic site. Enum: {linear I, linear II, trigonal planar III, tetrahedral IV, square planar IV, trigonal bipyramidal V, square pyramidal V, octahedral VI, trigonal prismatic VI, pentagonal bipyramidal VII, face capped octahedral VII, trigonal prismatic square face monocapped VII, cubic VIII, square antiprismatic VIII, dodecahedral VIII, hexagonal bipyramidal VIII, octahedral trans bicapped VIII, trigonal prismatic triangular face bicapped VIII, trigonal prismatic square face bicapped VIII, tricapped trigonal prismatic IX, monocapped square antiprismatic IX, bicapped square antiprismatic X, trigonal prismatic all faces capped XI, icosahedral XII, cuboctahedral XII, anticuboctahedral XII, hexagonal prismatic XII, bicapped hexagonal antiprismatic XIV, no, unknown} -->
+													<occupancy></occupancy> <!-- Fractional occupancy of the crystallographic site [Float] -->
+													<oxidation_state></oxidation_state> <!-- Oxidation state (or number) of the atom (mostly cation) in the crystallographic site [integer] -->
+												</specie>
+											</species>
+										</crystal_site>
+									</crystal_sites>
+									<crystal_molecule_sites full_definition=""> <!-- **OPTION** Crystallographic sites of molecules in the solid structure -->
+										<crystal_molecule_site><!-- multiple -->
+											<label></label> <!-- **COMPULSORY for OPTION** Label of the crystallographic site of the molecular species in the solid structure. FreeList: {A, B, C…, I, I1, I2…, cage 5-12, cage 5-12_6-4, cage 5-12_6-4, cage 4-3_5-6_6-3, cage 5-12_6-8} -->
+											<type></type> <!-- **MANDATORY for OPTION** Type of the crystallographic site of the molecular species in the solid structure. Enum: {main, substitutional, interstitial, split interstitial, topological defect, vacancy, unknown} -->
+											<number></number> <!-- **MANDATORY for OPTION** Numbers of equivalent crystallographic sites in the elementary cell of the solid structure [integer] -->
+											<species> <!-- **MANDATORY for OPTION** --><!-- List and state of the molecular species in the crystallographic site -->
+												<specie><!-- multiple -->
+													<uid></uid> <!-- **MANDATORY** LINK to the existing UID of the natural molecular species [‘MOLEC_(Isotopic)Chemicalformula(Letter)’, ‘MOLION_(Isotopic)ChemicalformulaCharge(Letter)’, 'MOLRAD_' or 'MOLRADION_'] -->
+													<coordinence></coordinence> <!-- Coordinence of the molecule/atom and associated geometry of the crystallographic site. Enum: {linear I, linear II, trigonal planar III, tetrahedral IV, square planar IV, trigonal bipyramidal V, square pyramidal V, octahedral VI, trigonal prismatic VI, pentagonal bipyramidal VII, face capped octahedral VII, trigonal prismatic square face monocapped VII, cubic VIII, square antiprismatic VIII, dodecahedral VIII, hexagonal bipyramidal VIII, octahedral trans bicapped VIII, trigonal prismatic triangular face bicapped VIII, trigonal prismatic square face bicapped VIII, tricapped trigonal prismatic IX, monocapped square antiprismatic IX, bicapped square antiprismatic X, trigonal prismatic all faces capped XI, icosahedral XII, cuboctahedral XII, anticuboctahedral XII, hexagonal prismatic XII, bicapped hexagonal antiprismatic XIV, pentagonal dodecahedron XX, ?? XX , hexagonal truncated trapezohedron XXIV, ?? XXXVI, hexadecahedron XXVIII, no, unknown} -->
+													<occupancy></occupancy> <!-- Fractional occupancy of the crystallographic site [Float] -->
+													<order></order> <!-- **MANDATORY** Order of the molecule in the crystallographic site. Enum: {fixed position, orientationaly disordered, rotating, unknown [TBC]} -->
+												</specie>
+											</species>
+										</crystal_molecule_site>
+									</crystal_molecule_sites>
+									<crystal_composition_order></crystal_composition_order> <!-- Type of compositional order in the crystallographic sites of the solid structure. Enum: {ordered, disordered, partly ordered, unknown} -->
+									<crystal_comments replace=""><![CDATA[]]></crystal_comments> <!-- Additional information on solid crystal structure and sites [blob]. Flag 'replace': {yes, no} -->
+									
+								<!-- PROPERTIES -->
+									<molar_mass></molar_mass> <!-- Molar mass of the solid (g/mol) -->
+									<density></density> <!-- Density of the solid (g/cm3) -->
+								<!-- OPTICAL PROPERTIES -->
+									<refringence_type></refringence_type> <!-- Type of refringence of the solid crystal. Enum: {isotropic, uniaxial, biaxial, various, unknown} -->
+									<refringence_sign></refringence_sign> <!-- Sign of birefringence of the solid crystal. Enum: {positive, negative, positive or negative, no, unknown} -->
+									<birefringence></birefringence> <!-- Value of birefringence, Delta_n, of the solid crystal -->
+									<refraction_index_na></refraction_index_na> <!-- Refraction index n_alpha of the solid crystal -->
+									<refraction_index_nb></refraction_index_nb> <!-- **only for uniaxial and biaxial solids** Refraction index n_beta of the solid crystal -->
+									<refraction_index_ng></refraction_index_ng> <!-- **only for biaxial solid** Refraction index n_gamma of the solid crystal -->
+									<dispersion_v></dispersion_v> <!-- **Only for transparent crystals** Abbe number V expressing the visible dispersion of a transparent solid crystal -->
+									<true_color></true_color> <!-- Actual color of the solid  -->
+									<diaphaneity></diaphaneity> <!-- Capacity of the actual solid to transmit light. Enum: {transparent, transparent to translucent, transparent to subtranslucent, transparent to opaque, translucent, translucent to subtranslucent, translucent to opaque, subtranslucent to opaque, opaque, various, unknown} -->
+									<luster></luster> <!-- Description of how and how much the surface of the actual solid reflects light. Enum: {metallic, submetallic, waxy, vitreous, pearly, silky, greasy, resinous, adamantine, earthy, various, unknown} -->
+								<!-- COMMENTS -->
+									<comments replace=""><![CDATA[]]></comments> <!-- Additional information on solid (possible substitution elements, impurities, …) [blob]. Flag 'replace': {yes, no} -->
+								</solid_variables>	
+
+							<!-- FUNDAMENTAL MINERAL PHASE: VARIABLE PARAMETERS -->
+								<!-- **OPTIONAL BLOCK, but COMPULSORY to change what is better known or different from the above fundamental mineral** All unfilled values will be kept the same -->
+								<!-- The variable parameters are mostly used to provide more accurate composition of the actual mineral: for variable or solution/hydration series minerals, or when mineral (sub-)groups are used for ill-defined minerals. Also for adding replacement or impurity elements. Also used for changing structural info of equivalent crystalline fundamental minerals for describing some related amorphous minerals -->
+
+								<mineral_variables>
+								<!-- POLYTYPE -->
+									<polytype><!-- unique --> 
+									<!-- **put only the actual polytype, if known** When filled it will replace the full list of polytypes -->
+										<name></name> <!-- Name of the actual mineral polytype -->
+										<comments><![CDATA[]]></comments> <!-- Additional information on the mineral polytype [blob] -->
+									</polytype>  
+									
+								<!-- CHEMICAL COMPOSITION -->
+									<formula><![CDATA[]]></formula> <!-- Developed empirical chemical formula of the mineral including replacement and impurities elements, and values of x,y,z fractions and n-hydration number [Latex format] -->
+									<chemical_formula></chemical_formula> <!-- Developed global chemical formula of the mineral -->
+									<hydration_number></hydration_number> <!-- Number or range of numbers of H2O (structural and/or interlayer) in mineral. put 'n' if undefined [ascii] -->
+
+								<!-- ATOMIC COMPOSITION -->
+									<isotope_mixture_type></isotope_mixture_type> <!-- **COMPULSORY when atomic isotopic abundance is not terrestrial** Type of isotopic mixture of the mineral. Enum: {pure isotope, partly substituted, terrestrial abundance, specific abundance, unknown} -->		
+									<!-- **COMPULSORY to list the replacement, impurity, or substituted atoms as well as the main atoms of the mineral with changing numbers or when their isotopic abundance is not terrestrial** There is the choice either to fully redefine the mineral composition, or only to add new atoms and modify some already defined. Two atoms with same <uid> but different <relevance> are considered as different atoms -->
+									<species full_definition=""> <!-- List of the different atoms of the mineral and their number. **FLAG ABS MANDATORY** Flag telling the mode of definition of the composition of the actual mineral. Flag 'full_definition': {yes, no} --> 
+										<specie><!-- multiple -->
+											<uid></uid> <!-- **ABS COMPULSORY** LINK to the existing UID of the natural atomic/molecular species (ex: 'ATOM_Si') or cation (ex: 'ATION_Fe2+’) or anionic radical. By convention will be the cation for elements that can have several valences (Fe, Mn, V, Cr, …) [‘ATOM_(Z)Symbol’ or 'ATION_(Z)SymbolCharge'] or [‘MINION_AOn_Charge’] or [‘MOLION_(Isotopic)ChemicalformulaCharge(Letter)’, 'MOLRAD_' or 'MOLRADION_'] -->
+											<number_min></number_min> <!-- **MANDATORY** Total number of atomic/molecular species with fixed abundance OR minimum number for atomic/molecular species with variable abundance in solid solutions or in n-hydrated minerals (H2O), or in mineral (sub-)group [Float] -->
+											<number_max></number_max> <!-- Maximum total number of atomic/molecular species with variable abundance in solid solutions or in n-hydrated minerals (H2O), or in mineral (sub-)group [Float] -->
+											<isotope_mole_fraction></isotope_mole_fraction> <!-- **MANDATORY when molecule/atom isotopic abundance is not terrestrial** Mole fraction of the isotopic species in the isotopic mixture of this molecule/atom. Note: <number_min> should be still the nominal value for the normal species in the mineral [Float] -->
+											<state></state> <!-- **MANDATORY** State of the atomic/molecular species inside the mineral. OpenEnum: {constituent element, constituent cation, constituent anion, anionic radical, hydration, interlayer physically adsorbed, pure, clathrate network, clathrate guest, in complex, other, unknown} -->
+											<relevance></relevance> <!-- **ABS MANDATORY** Relevance of the atomic/molecular species in the mineral. Enum: {main, replacement, impurity, substituted} -->
+										</specie>
+									</species>
+									<composition_comments replace=""><![CDATA[]]></composition_comments> <!-- Any additional information (range of values of x,n, sum(x+y+z), …) on the composition and formula of the mineral [blob]. Flag 'replace': {yes, no} -->
+									
+								<!-- OXIDES COMPOSITION -->
+									<oxides> <!-- **Full description needed, when changed** Description of oxides composition of the mineral -->
+										<oxide><!-- multiple -->
+											<formula></formula> <!-- Chemical formula of different oxides composing the mineral. Enum: {Ag2O, Al2O3, As2O3, As2O5, B, B2O3, BaO, BeO, Br, CO2, CaO, CdO, CeO2, Ce2O3, Cl, CoO, Co3O4, Cr2O3, Cs2O, CuO, Cu2O, F, Fe, FeO, Fe2O3, Fe3O4, Ga2O3, GeO2, H2O, HfO2, HgO, I, K2O, La2O3, Li2O, MgO, MnO, MnO2, Mn2O3, MoO3, N2O5, Na2O, Nd2O3, Nb2O5, NiO, O2, P2O5, PbO, PbO2, Pt2O3, PtO, Pt, Rb2O, S, SO2, SO3, SO4, Sb2O3, Sb2O5, Sc2O3, SeO2, SiO2, SnO, SnO2, SrO, Ta2O5, ThO2, TiO2, UO2, U3O8, VO2, V2O3, V2O5, WO3, Y2O3, ZnO, ZrO2}	-->
+											<mass_fraction></mass_fraction> <!-- Mass fraction (in %) of each type of oxide composing the actual mineral [Float] -->
+										</oxide>
+									</oxides>
+									<oxides_comments><![CDATA[]]></oxides_comments> <!-- Any additional information (sum of oxides …) on the oxides composition of the mineral [blob] -->
+									
+								<!-- MINERAL CLASSIFICATION -->
+									<strunz_code></strunz_code> <!-- **MANDATORY for glasses or amorphised minerals => put 'N/A'** Code of the mineral or group of minerals in the Strunz classification -->
+									<dana_group></dana_group> <!-- **MANDATORY for glasses or amorphised minerals => put 'N/A'** Group of the mineral in the Dana classification. OpenEnum: {02.08.09, 02.07.01, 02.08.10, …, 76.02.01, N/A} -->
+									<dana_code></dana_code> <!-- **MANDATORY for glasses or amorphised minerals => put 'N/A'** Code of the mineral in the Dana classification -->
+								<!-- CRYSTALLOGRAPHY -->
+									<phase_name></phase_name> <!-- Common name of the mineral phase as used in the literature -->
+									<phase_type></phase_type> <!-- **COMPULSORY for glasses or amorphised minerals of equivalent crystalline mineral** Main type of phase of the mineral. Enum: {crystalline, semicrystalline, paracrystalline, disordered, quasi-amorphous, amorphous, glassy, liquid, mixed, various, unknown} -->
+									<crystal_system></crystal_system> <!-- **COMPULSORY for glasses or amorphised minerals of equivalent crystalline mineral** Crystal lattice system of the mineral. Enum: {triclinic, monoclinic, orthorhombic, trigonal, hexagonal, tetragonal, isometric (cubic), amorphous, N/A, various, unknown} -->
+									<crystal_class></crystal_class> <!-- **MANDATORY for glasses or amorphised minerals => put 'N/A'** Crystalline class name of the mineral. Enum: {pedial, pinacoidal, domatic, sphenoidal, prismatic, pyramidal, disphenoidal, dipyramidal, rhombohedral, ditrigonal-pyramidal, trapezohedral, hexagonal-scalenohedral, trigonal-dipyramidal, ditrigonal-dipyramidal, dihexagonal-pyramidal, dihexagonal-dipyramidal, scalenohedral, ditetragonal-pyramidal, ditetragonal-dipyramidal, tetartoidal, diploidal, hexatetrahedral, gyroidal, hexoctahedral, N/A, various, unknown} -->
+									<crystal_class_symbol></crystal_class_symbol> <!-- **MANDATORY for glasses or amorphised minerals => put 'N/A'** Crystalline class (point group) Hermann-Mauguin short symbol (and Schönflies symbol) of the mineral. Enum: {1 (C1), -1 (Ci), 2 (C2), m (Cs), 2/m (C2h), 222 (D2), mm2 (C2v), mmm (D2h), 3 (C3), -3 (S6), 32 (D3), 3m (C3v), -3m (D3d), 4 (C4), -4 (S4), 4/m (C4h), 422 (D4), 4mm (C4v), -42m (D2d), 4/mmm (D4h), 6 (C6), -6 (C3h), 6/m (C6h), 622 (D6), 6mm (C6v), -6m2 (D3h), 6/mmm (D6h), 23 (T), m-3 (Th), 432 (O), -43m (Td), m-3m (Oh), N/A, various, unknown} -->
+									<crystal_spacegroup></crystal_spacegroup> <!-- **MANDATORY for glasses or amorphised minerals => put 'N/A'** Crystalline Hermann-Mauguin symbol of symmetry space group in point group of the mineral. Enum: {Aba2, Abm2, Ama2, Amm2, C2, C2/c, C2/m, C222, C222(1), Cc, Ccc2, Ccca, Cccm, Cm, Cmc2(1), Cmca, Cmcm, Cmm2, Cmma, Cmmm, F222, F23, F432, F-43c, F-43m, F4(1)32, Fd-3, Fd-3c, Fd-3m, Fdd2, Fddd, Fm-3, Fm-3c, Fm-3m, Fmm2, Fmmm, I222, I23, I2(1)2(1)2(1), I2(1)3, I4, I4/m, I4/mcm, I4/mmm, I41cd, I41md, I422, I432, I4cm, I4mm, I-4, I-42d, I-42m, I-43d, I-43m, I-4c2, I-4m2, I4(1), I4(1)/a, I4(1)/acd, I4(1)/amd, I4(1)22, I4(1)32, Ia-3, Ia-3d, Iba2, Ibam, Ibca, Im-3, Im-3m, Ima2, Imm2, Imma, Immm, P1, P-1, P2, P2/c, P2/m, P222, P222(1), P23, P2(1), P2(1)/c, P2(1)/m, P2(1)2(1)2, P2(1)2(1)2(1), P2(1)3, P3, P312, P31c, P31m, P321, P3c1, P3m1, P-3, P-31c, P-31m, P-3c1, P-3m1, P3(1), P3(1)12, P3(1)21, P3(2), P3(2)12, P3(2)21, P4, P4/m, P4/mbm, P4/mcc, P4/mmm, P4/mnc, P4/n, P4/nbm, P4/ncc, P4/nmm, P4/nnc, P422, P42bc, P42cm, P42mc, P42nm, P42(1)2, P432, P-4, P-42c, P-42m, P-42(1)c, P-42(1)m, P-43m, P-43n, P-4b2, P-4c2, P-4m2, P-4n2, P4(1), P4(1)22, P4(1)2(1)2, P4(1)32, P4(2), P4(2)/m, P4(2)/mbc, P4(2)/mcm, P4(2)/mmc, P4(2)/mnm, P4(2)/n, P4(2)/nbc, P4(2)/ncm, P4(2)/nmc, P4(2)/nnm, P4(2)22, P4(2)2(1)2, P4(2)32, P4(3), P4(3)22, P4(3)2(1)2, P4(3)32, P4bm, P4cc, P4mm, P4nc, P6, P6/m, P6/mcc, P6/mmm, P622, P6cc, P6mm, P-6, P-62c, P-62m, P-6c2, P-6m2, P6(1), P6(1)22, P6(2), P6(2)22, P6(3), P6(3)/m, P6(3)/mcm, P6(3)/mmc, P6(3)22, P6(3)cm, P6(3)mc, P6(4), P6(4)22, P6(5), P6(5)22, Pa-3, Pba2, Pbam, Pban, Pbca, Pbcm, Pbcn, Pc, Pca2(1), Pcc2, Pcca, Pccm, Pccn, Pm, Pm-3, Pm-3m, Pm-3n, Pma2, Pmc2(1), Pmm2, Pmma, Pmmm, Pmn2(1), Pmmn, Pmna, Pn-3, Pn-3m, Pn-3n, Pna2(1), Pnc2, Pnma, Pnn2, Pnna, Pnnm, Pnnn, R3, R32, R3c, R3m, R-3, R-3c, R-3m, N/A, various, unknown} -->
+									
+								<!-- CRYSTAL SITES -->
+									<!-- **OPTIONAL BLOCK** There is the choice either to fully redefine the crystal sites, or only to add new sites and modify some already defined. In both cases all the atoms in the site should be listed --> 
+									<crystal_sites full_definition=""> <!-- Crystallographic sites of the mineral structure - Start with cation sites. **FLAG ABS MANDATORY for OPTION** Flag telling the mode of definition of the crystal sites of the actual mineral. Flag 'full_definition': {yes, no} -->
+										<crystal_site><!-- multiple -->
+											<label></label> <!-- **COMPULSORY for OPTION** Label of the crystallographic site of the atoms in the mineral structure -->
+											<type></type> <!-- **MANDATORY for OPTION** Type of the crystallographic site of the molecular/atomic species in the solid structure. Enum: {main, substitutional, isovalent substitutional, aliovalent substitutional, interstitial, split interstitial, topological defect, vacancy, unknown} -->
+											<number></number> <!-- **MANDATORY for OPTION** Numbers of equivalent crystallographic sites in the fundamental cell of the mineral structure -->
+											<wp></wp> <!-- Wyckoff position code of the crystallographic site of the mineral structure (multiplicity, Wyckoff letter, site symmetry). Ex: ‘4u1’, ‘2m.2.’, ‘1e222’ -->
+											<species> <!-- **MANDATORY for OPTION** --><!-- List and state of the molecular/atomic species in the crystallographic site -->
+												<specie><!-- multiple -->
+													<uid></uid> <!-- **MANDATORY** LINK to the existing UID of the natural atom or cation [‘ATOM_(Z)Symbol’ or 'ATION_(Z)SymbolCharge'] -->
+													<coordinence></coordinence> <!-- Coordinence of the cation and associated geometry of the crystallographic site. Enum: {linear I, linear II, trigonal planar III, tetrahedral IV, square planar IV, trigonal bipyramidal V, square pyramidal V, octahedral VI, trigonal prismatic VI, pentagonal bipyramidal VII, face capped octahedral VII, trigonal prismatic square face monocapped VII, cubic VIII, square antiprismatic VIII, dodecahedral VIII, hexagonal bipyramidal VIII, octahedral trans bicapped VIII, trigonal prismatic triangular face bicapped VIII, trigonal prismatic square face bicapped VIII, tricapped trigonal prismatic IX, monocapped square antiprismatic IX, bicapped square antiprismatic X, trigonal prismatic all faces capped XI, icosahedral XII, cuboctahedral XII, anticuboctahedral XII, hexagonal prismatic XII, bicapped hexagonal antiprismatic XIV, no, unknown} -->
+													<occupancy></occupancy> <!-- Fractional occupancy of the crystallographic site [Float] -->
+													<oxidation_state></oxidation_state> <!-- Oxidation state (or number) of the atom (mostly cation) in the crystallographic site [integer] -->
+												</specie>
+											</species>
+										</crystal_site>
+									</crystal_sites>					<crystal_composition_order></crystal_composition_order> <!-- Type of compositional order in the crystallographic sites of the mineral structure. Enum: {ordered, disordered, partly ordered, unknown} -->
+									<crystal_comments replace=""><![CDATA[]]></crystal_comments> <!-- Additional information on mineral crystal structure and sites [blob]. Flag 'replace': {yes, no} -->
+									
+								<!-- PROPERTIES -->
+									<molar_mass></molar_mass> <!-- Molar mass of the mineral (g/mol) -->
+									<density></density> <!-- Density of the mineral (g/cm3) -->
+								<!-- OPTICAL PROPERTIES -->
+									<refringence_type></refringence_type> <!-- Type of refringence of the mineral crystal. Enum: {isotropic, uniaxial, biaxial, various, unknown} -->
+									<refringence_sign></refringence_sign> <!-- Sign of birefringence of the mineral crystal. Enum: {positive, negative, positive or negative, no, unknown} -->
+									<birefringence></birefringence> <!-- Value of birefringence, Delta_n, of the mineral crystal -->
+									<refraction_index_na></refraction_index_na> <!-- Refraction index n_alpha of the mineral crystal -->
+									<refraction_index_nb></refraction_index_nb> <!-- **only for uniaxial and biaxial minerals** Refraction index n_beta of the mineral crystal -->
+									<refraction_index_ng></refraction_index_ng> <!-- **only for biaxial minerals** Refraction index n_gamma of the mineral crystal -->
+									<dispersion_v></dispersion_v> <!-- **Only for transparent crystals** Abbe number V expressing the visible dispersion of a transparent mineral crystal -->
+								<!-- OPTICAL ASPECT -->
+									<true_color></true_color> <!-- Actual color of the mineral -->
+									<diaphaneity></diaphaneity> <!-- Capacity of the mineral to transmit light. Enum: {transparent, transparent to translucent, transparent to subtranslucent, transparent to opaque, translucent, translucent to subtranslucent, subtranslucent to opaque, translucent to opaque, opaque, unknown} -->
+									<luster></luster> <!-- Description of how and how much the surface of a mineral reflects light. Enum: {metallic, submetallic, waxy, vitreous, pearly, silky, greasy, resinous, adamantine, earthy, unknown} -->
+									<comments replace=""><![CDATA[]]></comments> <!-- Additional information on mineral (possible replacement, substitution elements, impurities, …) [blob]. Flag 'replace': {yes, no} -->
+								</mineral_variables>
+
+							<!-- FUNDAMENTAL LIQUID PHASE: VARIABLE PARAMETERS -->
+								<!-- **OPTIONAL BLOCK, but COMPULSORY to change what is better known or different from the above fundamental liquid** All unfilled values will be kept the same -->
+								<!-- The variable parameters are mostly used to provide the accurate composition of the actual liquid -->
+
+								<liquid_variables>
+								<!-- CHEMICAL COMPOSITION -->
+									<formula><![CDATA[]]></formula> <!-- Developed structural (empirical) chemical formula of the liquid [Latex format] -->	
+									<chemical_formula></chemical_formula> <!-- Developed global chemical formula of the liquid -->
+									
+								<!-- CHEMICAL FUNCTIONS AND BONDS -->
+									<chemical_functions full_definition=""> <!-- List of the different chemical functions present in the liquid, except those already in the molecular "species". **FLAG ABS MANDATORY** Flag telling the mode of definition of the chemical functions of the actual liquid. Flag 'full_definition': {yes, no} -->
+										<chemical_function><!-- multiple -->
+											<uid></uid> <!-- **ABS COMPULSORY** LINK to the existing UID of the chemical functions of the liquid  [‘GROUPMOLEC_RGroupformula’, ‘GROUPION_ RGroupformulaCharge’, ‘GROUPRAD_ RGroupformula’, ‘MINION_IonformulaCharge’] -->
+											<number></number> <!-- Number or range of numbers of this chemical function present in the liquid -->
+										</chemical_function>
+									</chemical_functions>
+									
+								<!-- MOLECULAR OR ATOMIC COMPOSITION -->
+									<isotope_mixture_type></isotope_mixture_type> <!-- **COMPULSORY when molecular isotopic abundance is not terrestrial** Type of isotopic mixture of the liquid. Enum: {pure isotope, partly substituted, terrestrial abundance, specific abundance, unknown} -->
+									
+									<!-- **COMPULSORY to list the impurity, replacement or substituted molecules/atoms as well as the main molecules/atoms of the liquid with changing numbers or when their isotopic abundance is not terrestrial** There is the choice either to fully redefine the liquid composition, or only to add new species and modify some already defined. Two species with same <uid> but different <relevance> are considered as different species -->
+									<species_mole_fraction_unit></species_mole_fraction_unit> <!-- Unit for the molar fraction or concentration of the species in the liquid. Enum: {mol/mol, mol/g, mol/kg, mol/l}, default = 'mol/mol' -->
+									<species full_definition=""> <!-- List of the different molecular or atomic species of the liquid and their number. **FLAG ABS MANDATORY** Flag telling the mode of definition of the composition of the actual liquid. Flag 'full_definition': {yes, no} -->	
+										<specie><!-- multiple -->
+											<uid></uid> <!-- **ABS COMPULSORY* LINK to the existing UID of the molecular species (molecule or molecular ion) or element (atom or ion) composing the liquid. [‘MOLEC_(Isotopic)Chemicalformula(Letter)’, ‘MOLION_(Isotopic)ChemicalformulaCharge(Letter)’, 'MOLRAD_' or 'MOLRADION_'] or [‘ATOM_(Z)Symbol’ or 'ATION_(Z)SymbolCharge'] -->
+											<mole_fraction></mole_fraction> <!-- **MANDATORY** Mole fraction or concentration of molecular/atomic (natural or isotopic) species in the liquid (Unit: in "species_mole_fraction_unit") [Float] -->
+											<mole_fraction_error></mole_fraction_error> <!-- **MANDATORY when <mole_fraction> has a value** Absolute uncertainty on mole fraction or concentration of the species in the liquid (Unit: in "species_mole_fraction_unit") [Float] -->
+											<state></state> <!-- **MANDATORY** State of the molecular/atomic species inside the liquid. OpenEnum: {constituent element, constituent cation, constituent anion, constituent molecular, molecular ion,  pure, mixed, monomers, dimers, multimers, solute, solvent, liquid solution, hydration, hydrated, other, unknown} -->
+											<relevance></relevance> <!-- **ABS MANDATORY** Relevance of the molecular/atomic species in the liquid. Enum: {main, substituted, impurity} -->
+										</specie>
+									</species>			
+									<composition_comments replace=""><![CDATA[]]></composition_comments> <!-- Any additional information or comments on the composition of the liquid [blob]. Flag 'replace': {yes, no} -->
+								<!-- PHASE -->
+									<phase_type></phase_type> <!-- Main type of phase of the liquid. Enum: {liquid, supercooled liquid, supercritical fluid, unknown} -->
+								<!-- PROPERTIES -->
+									<ph></ph> <!-- pH of the aqueous solution (in STP conditions) -->
+									<molar_mass></molar_mass> <!-- Molar mass of the liquid per mole of solvent (g/mol) -->
+									<density></density> <!-- Density of the liquid (at STP) (g/cm3) -->
+								<!-- OPTICAL PROPERTIES -->
+									<refraction_index_n></refraction_index_n> <!-- Refraction index, n, of the liquid (at 589.3 nm) -->
+									<dispersion_v></dispersion_v> <!-- Abbe number V expressing the visible dispersion of a transparent liquid -->
+									<diaphaneity></diaphaneity> <!-- Capacity of the liquid to transmit light. Enum: {transparent, transparent to translucent, translucent, translucent to opaque, opaque, unknown} -->
+									<comments replace=""><![CDATA[]]></comments> <!-- Additional information on liquid (impurities, …) [blob]. Flag 'replace': {yes, no} -->
+								</liquid_variables>
+								
+							<!-- BASIC CONSTITUENT CRYSTAL TEXTURE -->
+								<crystal> <!-- OPTION -->
+									<size_unit></size_unit> <!-- **COMPULSORY when <size_median/_min/_max> used** - Unit for the basic constituent crystal sizes (diameter). Enum: {nm, micron, mm, cm} -->
+									<size_method><![CDATA[]]></size_method> <!-- Description of the crystal size (mean/width or min/max) definition, and of the method of determination of the crystal size distribution [blob] -->
+									<sizes> <!-- **OPTION** Size distribution of the basic constituent crystals -->
+										<size><!-- multiple -->
+											<median></median> <!-- **MANDATORY for OPTION, or min & max** Median size (diameter) of basic constituent crystals. [Float] Unit: in “basic_constituent_crystal_size_unit” -->
+											<width></width> <!-- Full width at half maximum of the size distribution (diameter) of basic constituent crystals. [Float] Unit: in “basic_constituent_crystal_size_unit” -->
+											<min></min> <!-- **MANDATORY for OPTION, or median** Smallest size (diameter) of this crystal size range. [Float] Unit: in “basic_constituent_crystal_size_unit” -->
+											<max></max> <!-- **MANDATORY for OPTION, or median** Largest size (diameter) of this crystal size range. [Float] Unit: in “basic_constituent_crystal_size_unit” -->
+											<fraction></fraction> <!-- Mass fraction of basic constituent crystals comprised between size min and size max (diameter) [Float] -->
+											<fraction_error></fraction_error> <!-- Absolute uncertainty on the mass fraction comprised between size min and size max (diameter) [Float] -->
+											<shape></shape> <!-- Description of the shape of the individual basic constituent crystals of this size range. Enum: {amorphous, irregular, equant, reniform, globular, spherical, flakes, platy, tabular, lathlike, columnar, acicular, capillary, cubic, cylindrical, hexagonal, octahedral, prismatic, pyramidal, rhombohedral, nuggets, botryoidal, dendritic, spheres aggregate, aggregate, fluid, other, unknown} -->
+										</size>
+									</sizes>
+									<size_distribution><![CDATA[]]></size_distribution> <!-- Description and parameters of the crystal size distribution of the basic constituent [blob] -->
+								</crystal>
+								<texture></texture> <!-- Internal texture of the basic constituent crystals. Enum: {monocrystalline, polycrystalline, cryptocrystalline, nanocrystalline, metamict, amorphous, glassy, polymeric, macromolecular, complex, liquid, other, unknown} -->
+							<!-- BASIC CONSTITUENT COMMENTS -->
+								<comments><![CDATA[]]></comments> <!-- Additional information on basic constituent [blob] -->
+							</basic_constituent>		
+						</basic_constituents>
+								
+					<!-- CONSTITUENTS -->
+						<constituents> <!-- **ABS MANDATORY when no basic constituent** --> <!-- Constituents composing the material grains -->
+							<constituent><!-- multiple -->
+							<!-- CONSTITUENT IMPORT MODE AND INDEX -->
+								<import_mode></import_mode> <!-- **ABS MANDATORY** Mode of import of 'constituent' data. Enum: {first import, inherited, use existing, ignore, draft, no change, correction} -->
+								<uid></uid> <!-- **ABS MANDATORY to CREATE. Except when "import_mode"='use existing': it is the LINK to the UID of the existing constituent** Unique identifier code (UID) given to the constituent and should be of the style ‘CONST_AB_yyyymmdd_123...’ where ‘AB’ is your initials, 'yyyymmdd' the current date, and '123...' should be alphanumeric ascii (only with '_'), with no more than 6 characters -->
+								<relevance></relevance> <!-- **ABS MANDATORY** Relevance of the constituent in the material. Enum: {main - major, main - minor, impurity, product, precursor, unknown} -->
+
+							<!-- CONSTITUENT ARRANGEMENT AND ABUNDANCE IN MATERIAL -->
+								<!-- When the abundance info is fully known at the species level, then give it at the species level. The values (and errors) at the constituent level will thus be calculated during import where the fields are kept empty. Provide below abundances for constituents (absolute or fractional, but homogeneously for all constituents and fundamental constituents (previous block)) only when values are known only at this level or more accurately than the sum of the species abundances -->
+								<arrangement></arrangement> <!-- **MANDATORY** Relative arrangement of the constituent within the material grains. OpenEnum: {single phase, in multi-phases, homogeneous in multi-phases, heterogeneous in multi-phases, endmember in polyphase, matrix, inclusion, bubble, suspended particles, medium of suspension, in aggregate, in agglomerate, pore filling, coated core, coating shell, concentric zone, sector zone, layer zone, mixed-layer, complex intimate mix, sorbed phase, other, unknown} -->
+								<mass></mass> <!-- **MANDATORY or fill <mass_fraction>** Total mass of the constituent in the material [Float] (unit: g) -->
+								<mass_error></mass_error> <!-- **MANDATORY when <mass> has a value** Absolute uncertainty on the total mass of the constituent in the material [Float] (unit: g) -->
+								<mass_fraction></mass_fraction> <!-- **MANDATORY or fill <mass>** Mass fractions of the constituent in the material [Float] -->
+								<mass_fraction_error></mass_fraction_error> <!-- **MANDATORY when <mass_fraction> has a value** Absolute uncertainty on Mass fractions of the constituent in the material [Float] -->
+							
+							<!-- SORPTION --> 
+								<!-- **ABS MANDATORY OPTION for sorbed phase -->
+								<sorption_constituents> <!-- Constituents on which this constituent is sorbed -->
+									<constituent_uid></constituent_uid><!-- multiple --> <!-- **ABS MANDATORY** LINK to the existing UID of the constituent on which this constituent is sorbed [‘CONST_AB_yyyymmdd_123...’] -->
+								</sorption_constituents>
+								<sorption_mass_fraction></sorption_mass_fraction> <!-- **MANDATORY for sorbed phase** Mass fraction of the sorbed phase (molecular species) relative to the mass of the constituent(s) on/in which it is sorbed [Float] -->
+								<sorption_mass_fraction_error></sorption_mass_fraction_error> <!-- **MANDATORY when "sorption_mass_fraction" has a value** Absolute uncertainty on the mass fraction of the sorbed phase (molecular species) relative to the mass of the constituent(s) on/in which it is sorbed [Float] -->
+								
+								<abundance_comments><![CDATA[]]></abundance_comments> <!-- Additional information or comments about the abundance of this constituent in the material, or adsorbed on another constituent [blob] -->
+
+							<!-- **When "constituent_import_mode"='use existing': All Key Words below SHOULD NOT BE FILLED** - You can then remove all lines below up to and including the </species> tag -->
+
+							<!-- CONSTITUENT NAME, FAMILY AND SPECIES ORGANIZATION -->
+								<name></name> <!-- **ABS MANDATORY** Constituent name. May contain explicit info on the constituent: species name and some constituent properties (phase, …) -->
+								<family></family> <!-- **ABS MANDATORY** Family of the constituent. Enum: {molecular solid, covalent network solid, ionic solid, metallic solid, mineral, molecular liquid, atomic liquid, ionic liquid, metallic liquid, liquid solution, adsorbed, clusters, gas, complex mix, other, unknown} -->
+								<class></class> <!-- **MANDATORY** Class of solid composing the constituent. Enum: {non polar molecular solid, polar molecular solid, hydrogen bonded molecular solid, mixed molecular solid, chain covalent network solid, sheet covalent network solid, tridimentional covalent network solid, glass, acid salt, alkali salt, normal salt, mixed salt, true metal, pseudometal (semi-conductor), native element, non-silicate mineral, silicate mineral, organic mineral, non polar molecular liquid, polar molecular liquid, hydrogen bonded molecular liquid, molecular liquid solution, atomic liquid, atomic liquid solution, ionic liquid, ionic liquid solution, metallic liquid, metallic liquid solution, mixed liquid solution, atomic adsorbed, molecular adsorbed, atomic clusters, molecular clusters, atomic gas, molecular gas, complex mix, other, unknown} --> 
+								<compound_type></compound_type> <!-- **MANDATORY** Type of solid compound composing the constituent. OpenEnum: {elemental solid, elemental mineral, noble gas solid, carbon allotrope, organic molecular solid, organic mineral, inorganic molecular solid, clathrate, clathrate hydrate, hydrate, homopolymer, copolymer, molecular solid solution, solid molecular mixture, oxide, hydroxyde, oxide-hydroxide, non-oxide ceramic, sulfide, antimonate, antimonite, arsenate, arsenite, borate, bromate, bromide, carbonate, chlorate, chloride, chlorite, chromate, cyanate, cyanide, fluoride, fulminate, halide, iodate, iodide, molybdate, nitrate, nitrile, nitrite, perchlorate, phosphate, phosphite, rhenate, selenate, selenide, selenite, sulfate, sulfide, sulfite, sulfosalt, tellurate, tellurite, tungstate, vanadate, vanadium oxysalt, organic salt, silicate, cyclosilicate, inosilicate, nesosilicate, phyllosilicate, sorosilicate, tectosilicate, metal, metallic alloy, semi-conductor, complex mineral mix, solid oligomers, homopolymer, copolymer, Insoluble Organic Matter, Soluble Organic Matter, complex macromolecular mixture, complex organic-mineral mix, liquid, liquid solution, physically adsorbed phase, chemically adsorbed phase, interlayer phase, clusters, gas, gas mixture, other compound, other complex mix, unknown} -->
+								
+							<!-- CHEMICAL COMPOSITION -->
+								<formula><![CDATA[]]></formula> <!-- Developed structural (empirical) chemical formula of the constituent, only when not using a fundamental species [Latex format] -->
+								<chemical_formula></chemical_formula> <!-- Developed global chemical formula of the constituent, only when not using a fundamental species -->
+								<hydration></hydration> <!-- Flag telling if the constituent contains structural H2O molecules. BoolEnum: {yes, no} or {true, false} -->
+								<hydration_number></hydration_number> <!-- **MANDATORY for hydration** Number or amount (any unit, to be specified), or range, of H2O molecules in the constituent structure -->
+
+							<!-- CHEMICAL FUNCTIONS AND BONDS -->
+								<!-- Chemical bonds and chemical functions composing the constituent may be the only way to describe complex constituents. -->	
+								<chemical_functions> <!-- **COMPULSORY OPTION if exist** List of the different chemical functions present in the constituent, except those already in the molecular "species" -->
+									<chemical_function><!-- multiple -->
+										<uid></uid> <!-- **MANDATORY for OPTION** LINK to the existing UID of the 'chemical functions' of the constituent  [‘GROUPMOLEC_RGroupformula’, ‘GROUPION_ RGroupformulaCharge’, ‘GROUPRAD_ RGroupformula’, ‘MINION_IonformulaCharge’] -->
+										<number></number> <!-- **calculated for solids described with molecular species** Amount of this chemical function (any unit, to be specified) -->
+									</chemical_function>
+								</chemical_functions>
+								<chemical_bonds> <!-- **COMPULSORY OPTION if exist** list of the different chemical bonds of the constituent, except those already in the molecular "species" -->
+									<chemical_bond><!-- multiple -->
+										<uid></uid> <!-- **MANDATORY for OPTION** LINK to the existing UID of the 'chemical bonds' of the constituent [‘BOND_ZAtom1(BondSymbol)ZAtom2(Charge)’] -->	
+										<number></number> <!-- **calculated for solids described with molecular species** Amount of this bond (any unit, to be specified) -->
+									</chemical_bond>
+								</chemical_bonds>
+
+							<!-- ATOMIC OR MOLECULAR COMPOSITION -->
+								<isotope_mixture_type></isotope_mixture_type> <!-- **ABS MANDATORY** Type of isotopic mixture of the species in the constituent. Enum: {pure isotope, partly substituted, terrestrial abundance, specific abundance, unknown} -->
+								<!-- For pure isotopes and for natural or synthetic isotopic mixtures in terrestrial abundance (atom, molecule) or for substituted molecular mixtures (molecule), i.e. with one pure isotopic atom and the others in terrestrial abundance => link to the single corresponding fundamental species existing in the database (if not present: request it) -->
+								<!-- For non-standard natural or synthetic isotopic mixtures => build your own mixture using several fundamental pure isotopic species (at least the most abundant) -->
+								<species_mole_fraction_unit></species_mole_fraction_unit> <!-- **ONLY for liquids and amorphous/glaasy solids** Unit for the molar fraction or concentration of the species in the liquid constituent. Enum: {mol/mol, mol/g, mol/kg, mol/l}, default = 'mol/mol' -->
+								<species> <!-- **ABS MANDATORY at least one** Species composing the constituent -->
+									<specie><!-- multiple -->
+									<!-- SPECIES FAMILY AND STATE -->
+										<family></family> <!-- **ABS MANDATORY** General family of the species composing the constituent. Enum: {atom, element, molecule, chemical function, unknown} - 'atom' is for individual atom, 'element' for atom inside a structure (molecule, solid, liquid...). They both refer to the 'atom' species -->
+										<uid></uid> <!-- **ABS MANDATORY except when 'unknown'** LINK to the existing UID of the atomic or molecular species composing the constituent [Atom: ‘ATOM_(Z)Symbol’ or 'ATION_(Z)SymbolCharge'], [Molecule: ‘MOLEC_(Isotopic)Chemicalformula(Letter)’, ‘MOLION_(Isotopic)ChemicalformulaCharge(Letter)’, 'MOLRAD_' or 'MOLRADION_'] -->
+
+									<!-- SPECIES ABUNDANCE IN CONSTITUENT -->
+										<!-- When some abundance info is known at the species level, provide them (mole or mass, absolute or fractional, but homogeneously for all species). The values (and errors) kept empty at the constituent/material/layer/sample levels will be calculated during import only when the species abundances are fully known.  -->
+										<!-- **MANDATORY for atom, element, molecule: fill at least one of <mole>, <mole_fraction>, <mass>, <mass_fration> or <number>** Put 'NULL' in one of these if abundance is only known at an higher level (constituent/material/layer/sample) -->
+										<mole></mole> <!-- **MANDATORY, or fill one of 4 others** Number of moles of the species in simple molecular constituent (Unit: mole) [Float] -->
+										<mole_error></mole_error> <!--  **MANDATORY when <mole> has a value** Absolute uncertainty on the number of moles of the species in simple molecular constituent (Unit: mole) [Float] -->
+										<mole_fraction></mole_fraction> <!-- **MANDATORY, or fill one of 4 others** Mole fraction or concentration of the species in the constituent (Unit: in "species_mole_fraction_unit") [Float] -->
+										<mole_fraction_error></mole_fraction_error> <!-- **MANDATORY when <mole_fraction> has a value** Absolute uncertainty on mole fraction or concentration of the species in the constituent (Unit: in "species_mole_fraction_unit") [Float] -->
+										<mass></mass> <!-- **MANDATORY, or fill one of 4 others** mass of the species in the constituent (Unit: g) [Float] -->
+										<mass_error></mass_error> <!-- **MANDATORY when <mass> has a value** Absolute uncertainty on the mass of the species in the constituent (Unit: g) [Float] -->
+										<mass_fraction></mass_fraction> <!-- **MANDATORY, or fill one of 4 others** Mass fraction of the species in the constituent (can be calculated from material masses). Entry for molecules adsorbed / inserted / structural in mineral or other constituents [Float] -->
+										<mass_fraction_error></mass_fraction_error> <!-- **MANDATORY when <mass_fraction> has a value** Absolute uncertainty on mass fraction of the species in the constituent [Float] -->
+										<number_min></number_min> <!-- **MANDATORY, or fill one of 4 others** Nominal or minimum total number of the molecular/atomic species in the constituent formula [Float or 'n'] -->
+										<number_max></number_max> <!-- Maximum total number of the molecular/atomic species in the constituent formula [Float or 'n' if undefined] -->
+
+									<!-- SPECIES STATE IN CONSTITUENT -->
+										<state></state> <!-- **MANDATORY** State of the species inside the compound composing the constituent. OpenEnum: {constituent element, constituent cation, constituent anion, constituent mer, constituent molecular, molecular ion,  anionic radical, pure, mixed, matrix, monomers, dimers, multimers, solute, solvent, liquid solution, solid solution, clathrate network, clathrate guest, hydration, hydrated, in complex, physically adsorbed, chemically adsorbed, interlayer physically adsorbed, other, unknown} -->
+										<relevance></relevance> <!-- **ABS MANDATORY for atom, element, molecule** Relevance of the species in the constituent. Enum: {main, replacement, substituted, impurity, product, precursor, unknown} -->
+										<comments><![CDATA[]]></comments> <!-- Additional information on species state, origin and composition in the constituent [blob] -->
+									</specie>
+								</species>
+								<composition_comments><![CDATA[]]></composition_comments> <!-- Any additional information on the composition and formula of the constituent [blob] -->
+
+							<!-- CONSTITUENT PHASE -->						
+								<phase_name></phase_name> <!-- Name of the constituent phase (not normalized but mostly crystal system) as defined in the literature, and any information on crystal class, symbol, and spacegroup (Hermann-Mauguin symbol) -->
+								<phase_type></phase_type> <!-- **MANDATORY** Main type of constituent phase. Enum: {crystalline, semicrystalline, paracrystalline, disordered, quasi-amorphous, amorphous, glassy, mesophase, supercooled liquid, liquid, supercritical fluid, adsorbed, interlayer, adsorbed+interlayer, mono-multimer, cluster, gas, mixed, other, unknown} -->
+								<phase_comments></phase_comments> <!-- Any information on the constituent crystal structure (system, class, class symbol, spacegroup, crystal sites, ...) [blob] -->
+								
+							<!-- CONSTITUENT CRYSTAL TEXTURE -->
+								<crystal> <!-- OPTION -->
+									<size_unit></size_unit> <!-- **COMPULSORY when <size_median/_min/_max> used** - Unit for the constituent crystal sizes (diameter). Enum: {nm, micron, mm, cm} -->
+									<size_method><![CDATA[]]></size_method> <!-- Description of the crystal size (mean/width or min/max) definition, and of the method of determination of the crystal size distribution [blob] -->
+									<sizes> <!-- **OPTION** Size distribution of the constituent crystals -->
+										<size><!-- multiple -->
+											<median></median> <!-- **MANDATORY for OPTION, or min & max** Median size (diameter) of constituent crystals. [Float] Unit: in “constituent_crystal_size_unit” -->
+											<width></width> <!-- Full width at half maximum of the size distribution (diameter) of constituent crystals. [Float] Unit: in “constituent_crystal_size_unit” -->
+											<min></min> <!-- **MANDATORY for OPTION, or median** Smallest size (diameter) of this crystal size range. [Float] Unit: in “constituent_crystal_size_unit” -->
+											<max></max> <!-- **MANDATORY for OPTION, or median** Largest size (diameter) of this crystal size range. [Float] Unit: in “constituent_crystal_size_unit” -->
+											<fraction></fraction> <!-- Mass fraction of constituent crystals comprised between size min and size max (diameter) [Float] -->
+											<fraction_error></fraction_error> <!-- Absolute uncertainty on the mass fraction comprised between size min and size max (diameter) [Float] -->
+											<shape></shape> <!-- Description of the shape of the individual constituent crystals of this size range. Enum: {amorphous, irregular, equant, reniform, globular, spherical, flakes, platy, tabular, lathlike, columnar, acicular, capillary, cubic, cylindrical, hexagonal, octahedral, prismatic, pyramidal, rhombohedral, nuggets, botryoidal, dendritic, spheres aggregate, aggregate, fluid, other, unknown} -->
+										</size>
+									</sizes>
+									<size_distribution><![CDATA[]]></size_distribution> <!-- Description and parameters of the crystal size distribution of the constituent [blob] -->
+								</crystal>
+								<texture></texture> <!-- Internal texture of the constituent crystals. Enum: {monocrystalline, polycrystalline, cryptocrystalline, nanocrystalline, metamict, amorphous, glassy, polymeric, macromolecular, complex, liquid, other, unknown} -->
+
+							<!-- PROPERTIES -->
+								<molar_mass></molar_mass> <!-- Molar mass (value with uncertainty) of the constituent (g/mol) -->
+								<density></density> <!-- Density (value with uncertainty) of the constituent(g/cm3) -->
+
+							<!-- OPTICAL PROPERTIES -->
+								<refringence></refringence> <!-- Any information on the refringence of the constituent: type, sign, birefringence, dispersion, ... -->
+								<refraction_index_n></refraction_index_n> <!-- Refraction index(es), n, (value or range) of the constituent (precise which one and at which wavelength) -->
+								<true_color></true_color> <!-- Color of the constituent  -->
+								<diaphaneity></diaphaneity> <!-- Capacity of the constituent to transmit light. Enum: {transparent, transparent to translucent, transparent to subtranslucent, transparent to opaque, translucent, translucent to subtranslucent, translucent to opaque, subtranslucent to opaque, opaque, various, unknown} -->
+								<luster></luster> <!-- Description of how and how much the surface of the constituent reflects light. Enum: {metallic, submetallic, waxy, vitreous, pearly, silky, greasy, resinous, adamantine, earthy, various, unknown} -->
+
+							<!-- CONSTITUENT COMMENTS -->
+								<comments><![CDATA[]]></comments> <!-- Additional information on constituent state and compound organization, in particular for coating of grains: coating thickness, phase, and texture  (key-words ?) [blob] -->
+							</constituent>
+						</constituents>
+					</material>
+				</materials>
+			</layer>
+		</layers>
+<!-- ******************************************************************************** -->
+		
+	<!-- PRECURSOR MATERIALS FOR THE PROCESSINGS --> <!-- **OPTION** -->
+		<!-- USEFUL ONLY if a precursor of the sample has not been already described either as a sample, a matter, or a material. Otherwise they should be directly linked with <processings_precursor_samples/_matter/_material_uid> -->
+		<!-- Describe the other (new) precursor materials for the processings -->
+		<precursor_materials> <!-- Precursor materials used to create the ‘materials’ -->
+			<precursor_material><!-- multiple -->
+			<!-- PRECURSOR MATERIAL IMPORT MODE AND INDEX -->
+				<import_mode></import_mode> <!-- **ABS MANDATORY** Mode of import of 'material' data. Enum: {first import, inherited, use existing, ignore, draft, no change, correction} -->
+				<uid></uid> <!-- **ABS MANDATORY to CREATE. Except when "import_mode"='use existing': it is then the LINK to the UID of the existing material** Unique identifier code (UID) given to the material and should be of the style ‘MATERIAL_AB_yyyymmdd_123...’ where ‘AB’ is your initials, 'yyyymmdd' the current date, and '123...' should be alphanumeric ascii (only with '_'), with no more than 6 characters -->
+				<!-- <relevance>precursor</relevance> Relevance of the precursor material -->
+
+			<!-- **When "material_import_mode"='use existing': All Key Words below SHOULD NOT BE FILLED** - You can then remove all lines below up to and including the </constituents> tag -->
+		
+			<!-- PRECURSOR MATERIAL NAME AND REFERENCE -->
+				<name></name> <!-- **ABS MANDATORY** Material name. Should contain explicit info on the material: name and some properties -->
+				<family></family> <!-- **MANDATORY** Family of the material. Enum: {fluid, solid, mineral, carbonaceous, extraterrestrial, mixed, other, unknown} -->
+				<local_reference_code></local_reference_code> <!-- Possible reference code given to the material -->
+				
+			<!-- PRECURSOR MATERIAL ORIGIN -->
+				<origin></origin> <!-- **ABS MANDATORY** General origin of the  material. Enum: {natural terrestrial, extraterrestrial, planetary, laboratory, commercial, simulated} -->	
+				
+			<!-- PRECURSOR MATERIAL GRAIN SIZE DISTRIBUTION AND TEXTURE -->
+				<grain> <!-- OPTION -->
+					<size_unit></size_unit> <!-- **COMPULSORY when <size_median/_min/_max> used** - Unit for the material grain sizes (diameter). Enum: {nm, micron, mm, cm} -->
+					<size_method><![CDATA[]]></size_method> <!-- Description of the method used for grain size selection and of grain size (median/width or min/max) determination [blob] -->
+					<sizes> <!-- **OPTION** Size distribution of the material grains -->
+						<size><!-- multiple -->
+							<median></median> <!-- **MANDATORY for OPTION, or min & max** Median size (diameter) of material grains. [Float] Unit: in “material_grain_size_unit” -->
+							<width></width> <!-- Full width at half maximum of the size distribution (diameter) of material grains. [Float] Unit: in “material_grain_size_unit” -->
+							<min></min> <!-- **MANDATORY for OPTION, or median** Smallest size (diameter) of material grains of this size range. [Float] Unit: in “material_grain_size_unit” -->
+							<max></max> <!-- **MANDATORY for OPTION, or median** Largest size (diameter) of material grains of this size range. [Float] Unit: in “material_grain_size_unit” -->
+							<fraction></fraction> <!-- Mass fraction of material grains comprised between size min and size max (diameter) [Float] -->
+							<fraction_error></fraction_error> <!-- Absolute uncertainty on the mass fraction of material grains comprised between size min and size max (diameter) [Float] -->
+							<shape></shape> <!-- Description of the shape of the individual material grains (granular material) of this size range. Enum: {amorphous, irregular, equant, reniform, globular, spherical, flakes, platy, tabular, lathlike, columnar, acicular, capillary, cubic, cylindrical, hexagonal, octahedral, prismatic, pyramidal, rhombohedral, nuggets, botryoidal, dendritic, spheres aggregate, aggregate, fluid, other, unknown} -->
+						</size>
+					</sizes>
+					<size_distribution><![CDATA[]]></size_distribution> <!-- Description and parameters of the grain size distribution of the material [blob] -->
+					<texture></texture> <!-- Description of the global texture of the grains. OpenEnum: {clay-like, silt-like, compact, compact with defects, compact with bubbles, compact porous, compact microporous, lamellar, fibrous, compact mixed, complex, molecular layer, cluster, liquid, gaseous, other, unknown} -->
+					<compacity></compacity> <!-- Compacity of the grains of the material (fraction of solid volume per grain volume unit) -->
+					<compacity_error></compacity_error> <!-- Absolute uncertainty on the compacity of the grains of the material -->
+					<density></density> <!-- Density of the grains of the material [Float] (g/cm3) -->
+					<density_error></density_error> <!-- Absolute uncertainty on bulk density of the grains of the material [Float] (g/cm3) -->
+				</grain>
+				
+			<!-- PRECURSOR MATERIAL COMMENTS -->	
+				<comments><![CDATA[]]></comments> <!-- Experimentalist additional information or comments about this material [blob] -->
+				
+			<!-- PUBLICATIONS ON PRECURSOR MATERIAL -->
+				<publications> <!-- **OPTION** -->
+					<publication_uid></publication_uid><!-- multiple --> <!-- LINK to the existing UID of the publication describing the material and its eventual formation/processing [‘PUBLI_FirstAuthorName_Year(Letter)’] -->
+				</publications>
+				
+			<!-- PRECURSOR MATERIAL CONSTITUENTS MIXING -->
+				<constituents_mixing></constituents_mixing> <!-- **MANDATORY** How the constituents are mixed at the sub-grain level in the material grains. OpenEnum: {single phase, multi-phases, endmembers polyphase, matrix with inclusions, grains with inclusions, filled agglomerate, coated grains, concentric zoning, sector zoning, layer zoning, interlayering, foam, emulsion, colloidal solution, complex mixing, adsorbate-adsorbent, other, unknown} -->
+			
+			<!-- CHOICE OF BASIC CONSTITUENT(S) or 'STANDARD' CONSTITUENT(S) -->
+				<!-- **if some constituent(s) of the material can be described by a fundamental constituent then fill one <basic_constituent> block for each of them. If not, then fill one <constituent> block for each**. If the <constituents> or <basic_constituents> block is unused, then you can remove it -->
+
+			<!-- BASIC CONSTITUENTS -->
+				<basic_constituents> <!-- **COMPULSORY for fundamental phases** Basic constituents composing the material grains -->
+					<basic_constituent> <!-- multiple -->
+					<!-- BASIC CONSTITUENT IMPORT MODE AND INDEX -->
+						<import_mode></import_mode> <!-- **ABS MANDATORY** Mode of import of 'basic constituent' data. Enum: {first import, inherited, use existing, ignore, draft, no change, correction} -->
+						<uid></uid> <!-- **ABS MANDATORY to CREATE. Except when "import_mode"='use existing': it is the LINK to the UID of the existing constituent** Unique identifier code (UID) given to the constituent and should be of the style ‘CONST_AB_yyyymmdd_123...’ where ‘AB’ is your initials, 'yyyymmdd' the current date, and '123...' should be alphanumeric ascii (only with '_'), with no more than 6 characters -->
+
+					<!-- BASIC CONSTITUENT ARRANGEMENT AND ABUNDANCE IN MATERIAL -->
+						<!-- **MANDATORY: fill at least one of <mass>, <mass_fration>, <mole> or <mole_fraction>** Provide below abundances (absolute or fractional) but homogeneously for all basic constituents and constituents (next block) -->
+						<arrangement></arrangement> <!-- **MANDATORY** Relative arrangement of the constituent within the material grains. OpenEnum: {single phase, in multi-phases, homogeneous in multi-phases, heterogeneous in multi-phases, endmember in polyphase, matrix, inclusion, bubble, suspended particles, medium of suspension, in aggregate, in agglomerate, pore filling, coated core, coating shell, concentric zone, sector zone, layer zone, mixed-layer, complex intimate mix, sorbed phase, other, unknown} -->
+					<!-- ABUNDANCE IN MASS -->
+						<mass></mass> <!-- **MANDATORY, or fill one of 3 others** Total mass of the basic constituent in the material [Float] (unit: g) -->
+						<mass_error></mass_error> <!-- **MANDATORY when <mass> has a value** Absolute uncertainty on the total mass of the basic constituent in the material [Float] (unit: g) -->
+						<mass_fraction></mass_fraction> <!-- **MANDATORY, or fill one of 3 others** Mass fraction of the basic constituent in the material [Float] -->
+						<mass_fraction_error></mass_fraction_error> <!-- **MANDATORY when <mass_fraction> has a value** Absolute uncertainty on Mass fraction of the basic constituent in the material [Float] -->
+					<!-- ABUNDANCE IN MOLE: **COMPULSORY to use only if all constituents of the material are “fundamental solids” of family 'molecular solid' or 'ionic solid' or “fundamental liquids”, but neither “fundamental minerals”, nor “standard constituents”** -->
+						<mole></mole> <!-- **MANDATORY, or fill one of 3 others** Number of moles of basic constituent formula, as defined by the <solid_specie_number_min> or <liquid_specie_number_min> values [Float] (unit: in 'mol') -->
+						<mole_error></mole_error> <!--  **MANDATORY when <mole> has a value** Absolute uncertainty on the number of moles oof the basic constituent formula [Float] (unit: in 'mol') -->
+						<mole_fraction></mole_fraction> <!-- **MANDATORY, or fill one of 3 others** Mole fraction of basic constituent [Float] -->
+						<mole_fraction_error></mole_fraction_error> <!-- **MANDATORY when <mole_fraction> has a value** Absolute uncertainty on mole fraction of the basic constituent [Float] -->
+						<abundance_comments><![CDATA[]]></abundance_comments> <!-- Additional information or comments about the abundance of this basic constituent in the material [blob] -->
+							
+					<!-- **When "basic_constituent_import_mode"='use existing': all Key Words below SHOULD NOT BE FILLED** - You can then remove all lines below up to and including the </comments> tag -->
+					
+					<!-- BASIC CONSTITUENT NAME AND INDEX -->
+						<name></name> <!-- **ABS MANDATORY** Basic constituent name. May contain explicit info on the fundamental constituent or its variant: species name, specific abundance, and some constituent properties (phase, …), origin, ... -->
+						<fundamental_phase_uid></fundamental_phase_uid> <!-- **ABS MANDATORY** LINK to the existing UID of the fundamental ‘solid’, ‘mineral’, or ‘liquid’ phase composing the material grains ['SOLID_SolidName’, or ‘SOLIDGROUP_GroupName’, ‘SOLIDSERIES_SeriesName’ or ‘MINERGROUP_GroupName’, ‘MINERSERIES_SeriesName’, ‘MINER_MineralName’ or 'LIQUID_LiquidName’ or ‘LIQUIDSERIES_SeriesName’] -->
+
+					<!-- FUNDAMENTAL SOLID PHASE: VARIABLE PARAMETERS -->
+						<!-- **OPTIONAL BLOCK, but COMPULSORY to change what is better known or different from the above fundamental solid** All unfilled values will be kept the same -->
+						<!-- The variable parameters are mostly used to provide more accurate composition of the actual solid: for variable solids or solid solution/hydration series, or when solid (sub-)groups are used for ill-defined solids. Also for adding replacement or impurity elements. Also used for changing structural info of equivalent crystalline fundamental solids for describing some related amorphous solids -->
+						<solid_variables>
+						<!-- POLYTYPE -->
+							<polytype><!-- unique --> 
+							<!-- **keep only the actual polytype, if known** When filled it will replace the full list of polytypes -->
+								<name></name> <!-- Name of the actual solid polytype -->
+								<comments><![CDATA[]]></comments> <!-- Additional information on the solid polytype [blob] -->
+							</polytype>
+							
+						<!-- CHEMICAL COMPOSITION -->
+							<formula><![CDATA[]]></formula> <!--  Developed structural (empirical) chemical formula of the solid [Latex format] -->
+							<chemical_formula></chemical_formula> <!-- Developed global chemical formula of the solid -->
+							<hydration_number></hydration_number> <!-- Number or range of numbers of structural H2O in the solid -->
+							
+						<!-- POLYMERS PARAMETERS --> <!-- **ONLY for polymers**  -->
+							<polymer>
+								<monomer_arrangement></monomer_arrangement>	<!-- **MANDATORY only for polymers** Enum: {linear homopolymer, branched homopolymer,  sequence-controlled copolymer, alternating copolymer, periodic copolymer, statistical copolymer, random copolymer, block copolymer, stereoblock copolymer, branched Graft copolymer, branched star copolymer, other, unknown} -->
+								<terminal_function></terminal_function> <!-- **MANDATORY only for polymers** Terminating chemical function(s) of the polymer [LaTeX] --><monomer_number></monomer_number> <!-- **MANDATORY only for polymers, or next KW** Average number or range of numbers of monomers in the actual solid polymer molecules -->
+								<molar_mass></molar_mass> <!-- **MANDATORY only for polymers, or previous KW** Average molar mass or range of molar masses of the actual polymer molecules [g/mol] -->
+								<polymolecularity_index></polymolecularity_index> <!-- Polymolecularity index (or polydispersity index) of the numbers of monomers or molar masses of the actual polymer molecules -->
+								<crystallinity_degree></crystallinity_degree> <!-- Crystallinity degree of the actual solid polymer -->
+								<comments replace=""><![CDATA[]]></comments> <!-- Any additional information or comments on the polymer (polymer branching, ...) [blob] Flag 'replace': {yes, no} -->
+							</polymer>
+							
+						<!-- CHEMICAL FUNCTIONS AND BONDS -->
+							<chemical_functions full_definition=""> <!-- List of the different chemical functions present in the solid, except those already in the molecular "species". **FLAG ABS MANDATORY** Flag telling the mode of definition of the chemical functions of the actual solid. Flag 'full_definition': {yes, no} -->
+								<chemical_function><!-- multiple -->
+									<uid></uid> <!-- **ABS COMPULSORY** LINK to the existing UID of the chemical functions of the solid  [‘GROUPMOLEC_RGroupformula’, ‘GROUPION_ RGroupformulaCharge’, ‘GROUPRAD_ RGroupformula’, ‘MINION_IonformulaCharge’] -->
+									<number></number> <!-- Number or range of numbers of this chemical function present in the solid -->
+								</chemical_function>
+							</chemical_functions>
+							
+						<!-- MOLECULAR OR ATOMIC COMPOSITION -->
+							<isotope_mixture_type></isotope_mixture_type> <!-- **COMPULSORY when atomic isotopic abundance is not terrestrial** Type of isotopic mixture of the solid. Enum: {pure isotope, partly substituted, terrestrial abundance, specific abundance, unknown} -->
+								
+							<!-- **COMPULSORY to list the impurity, replacement or substituted molecules/atoms as well as the main molecules/atoms of the solid with changing numbers or when their isotopic abundance is not terrestrial** There is the choice either to fully redefine the solid composition, or only to add new species and modify some already defined. Two species with same <uid> but different <relevance> are considered as different species -->
+							<species full_definition=""> <!-- List of the different molecular or atomic species of the solid and their number. **FLAG ABS MANDATORY** Flag telling the mode of definition of the composition of the actual solid. Flag 'full_definition': {yes, no} -->	
+								<specie><!-- multiple --> 
+									<uid></uid> <!-- **ABS COMPULSORY** LINK to the existing UID of the molecular species (molecule or molecular ion) or element (atom or ion) composing the solid.  [‘MOLEC_(Isotopic)Chemicalformula(Letter)’, ‘MOLION_(Isotopic)ChemicalformulaCharge(Letter)’, 'MOLRAD_' or 'MOLRADION_']  or [‘ATOM_(Z)Symbol’ or 'ATION_(Z)SymbolCharge'] -->
+									<number_min></number_min> <!-- **MANDATORY** Total number of molecular/atomic species with fixed abundance OR minimum number for molecular/atomic species with variable abundance in solid solutions, n-hydrated solids (H2O), or in solid (sub-)group [Float] -->
+									<number_max></number_max> <!-- Maximum total number of molecular/atomic species with variable abundance in solid solutions, n-hydrated solids (H2O), or in solid (sub-)group [Float] -->
+									<isotope_mole_fraction></isotope_mole_fraction> <!-- **MANDATORY when molecule/atom isotopic abundance is not terrestrial** Mole fraction of the isotopic species in the isotopic mixture of this molecule/atom. Note: <number_min> should be still the nominal value for the normal species in the solid [Float] -->
+									<state></state> <!-- **MANDATORY** State of the molecular/atomic species inside the solid. OpenEnum: {constituent element, constituent cation, constituent anion, constituent mer, constituent molecular, molecular ion,  anionic radical, pure, mixed, matrix, monomers, dimers, multimers, solute, solvent, liquid solution, solid solution, clathrate network, clathrate guest, hydration, hydrated, in complex, physically adsorbed, chemically adsorbed, interlayer physically adsorbed, other, unknown} -->
+									<relevance></relevance> <!-- **ABS MANDATORY** Relevance of the molecular/atomic species in the solid. Enum: {main, replacement, substituted, impurity} -->
+								</specie>
+							</species>
+							<composition_comments replace=""><![CDATA[]]></composition_comments> <!-- Any additional information (range of values of x,n, sum(x+y+z), …) on the composition and formula of the solid [blob]. Flag 'replace': {yes, no} -->
+							
+						<!-- OXIDES COMPOSITION -->
+							<oxides> <!-- **Full description needed, when changed** Description of oxides composition of the solid -->
+								<oxide><!-- multiple -->
+									<formula></formula> <!-- Chemical formula of different oxides composing the solid. Enum: {Ag2O, Al2O3, As2O3, As2O5, B, B2O3, BaO, BeO, Br, CO2, CaO, CdO, CeO2, Ce2O3, Cl, CoO, Co3O4, Cr2O3, Cs2O, CuO, Cu2O, F, Fe, FeO, Fe2O3, Fe3O4, Ga2O3, GeO2, H2O, HfO2, HgO, I, K2O, La2O3, Li2O, MgO, MnO, MnO2, Mn2O3, MoO3, N2O5, Na2O, Nd2O3, Nb2O5, NiO, O2, P2O5, PbO, PbO2, Pt2O3, PtO, Pt, Rb2O, S, SO2, SO3, SO4, Sb2O3, Sb2O5, Sc2O3, SeO2, SiO2, SnO, SnO2, SrO, Ta2O5, ThO2, TiO2, UO2, U3O8, VO2, V2O3, V2O5, WO3, Y2O3, ZnO, ZrO2} -->
+									<mass_fraction></mass_fraction> <!-- Mass fraction (in %) of each type of oxide composing the actual solid [Float] -->
+								</oxide>
+							</oxides>
+							<oxides_comments><![CDATA[]]></oxides_comments> <!-- Any additional information (sum of oxides …) on the oxides composition of the solid [blob] -->
+							
+						<!-- CLASSIFICATION -->
+							<classification_group>NULL</classification_group> <!-- **MANDATORY for glasses or amorphised solids of equivalent crystalline solid => 'N/A'** Group of the solid in the classification. OpenEnum: {..., 04.01.01, 04.01.02, 04.01.03, ..., N/A [TBD]} -->
+							<classification_code>NULL</classification_code> <!-- **MANDATORY for glasses or amorphised solids of equivalent crystalline solid => 'N/A'** Code of the solid in the classification (Ex: 04.02.03.07 [TBD]) -->	
+							
+						<!-- CRYSTALLOGRAPHY -->
+							<phase_name></phase_name> <!-- Common name of the solid phase as used in the literature -->
+							<phase_type></phase_type> <!-- **COMPULSORY for glasses or amorphised solids of equivalent crystalline solid** Main type of phase of the solid. Enum: {crystalline, semicrystalline, paracrystalline, disordered, quasi-amorphous, amorphous, glassy, liquid, mixed, various, unknown} -->
+							<crystal_system></crystal_system> <!-- **COMPULSORY for glasses or amorphised solids of equivalent crystalline solid** Crystal lattice system of the solid. Enum: {triclinic, monoclinic, orthorhombic, trigonal, hexagonal, tetragonal, isometric (cubic), amorphous, N/A, various, unknown} -->
+							<crystal_class></crystal_class> <!-- **MANDATORY for glasses or amorphised solids => put 'N/A'** Crystalline class name of the solid. Enum: {pedial, pinacoidal, domatic, sphenoidal, prismatic, pyramidal, disphenoidal, dipyramidal, rhombohedral, ditrigonal-pyramidal, trapezohedral, hexagonal-scalenohedral, trigonal-dipyramidal, ditrigonal-dipyramidal, dihexagonal-pyramidal, dihexagonal-dipyramidal, scalenohedral, ditetragonal-pyramidal, ditetragonal-dipyramidal, tetartoidal, diploidal, hexatetrahedral, gyroidal, hexoctahedral, N/A, various, unknown} -->
+							<crystal_class_symbol></crystal_class_symbol> <!-- **MANDATORY for glasses or amorphised solids => put 'N/A'** Crystalline class (point group) Hermann-Mauguin short symbol (and Schönflies symbol) of the solid. Enum: {1 (C1), -1 (Ci), 2 (C2), m (Cs), 2/m (C2h), 222 (D2), mm2 (C2v), mmm (D2h), 3 (C3), -3 (S6), 32 (D3), 3m (C3v), -3m (D3d), 4 (C4), -4 (S4), 4/m (C4h), 422 (D4), 4mm (C4v), -42m (D2d), 4/mmm (D4h), 6 (C6), -6 (C3h), 6/m (C6h), 622 (D6), 6mm (C6v), -6m2 (D3h), 6/mmm (D6h), 23 (T), m-3 (Th), 432 (O), -43m (Td), m-3m (Oh), N/A, various, unknown} -->  
+							<crystal_spacegroup></crystal_spacegroup> <!-- **MANDATORY for glasses or amorphised solids => put 'N/A'** Crystalline Hermann-Mauguin symbol of symmetry space group in point group of the solid. Enum: {Aba2, Abm2, Ama2, Amm2, C2, C2/c, C2/m, C222, C222(1), Cc, Ccc2, Ccca, Cccm, Cm, Cmc2(1), Cmca, Cmcm, Cmm2, Cmma, Cmmm, F222, F23, F432, F-43c, F-43m, F4(1)32, Fd-3, Fd-3c, Fd-3m, Fdd2, Fddd, Fm-3, Fm-3c, Fm-3m, Fmm2, Fmmm, I222, I23, I2(1)2(1)2(1), I2(1)3, I4, I4/m, I4/mcm, I4/mmm, I41cd, I41md, I422, I432, I4cm, I4mm, I-4, I-42d, I-42m, I-43d, I-43m, I-4c2, I-4m2, I4(1), I4(1)/a, I4(1)/acd, I4(1)/amd, I4(1)22, I4(1)32, Ia-3, Ia-3d, Iba2, Ibam, Ibca, Im-3, Im-3m, Ima2, Imm2, Imma, Immm, P1, P-1, P2, P2/c, P2/m, P222, P222(1), P23, P2(1), P2(1)/c, P2(1)/m, P2(1)2(1)2, P2(1)2(1)2(1), P2(1)3, P3, P312, P31c, P31m, P321, P3c1, P3m1, P-3, P-31c, P-31m, P-3c1, P-3m1, P3(1), P3(1)12, P3(1)21, P3(2), P3(2)12, P3(2)21, P4, P4/m, P4/mbm, P4/mcc, P4/mmm, P4/mnc, P4/n, P4/nbm, P4/ncc, P4/nmm, P4/nnc, P422, P42bc, P42cm, P42mc, P42nm, P42(1)2, P432, P-4, P-42c, P-42m, P-42(1)c, P-42(1)m, P-43m, P-43n, P-4b2, P-4c2, P-4m2, P-4n2, P4(1), P4(1)22, P4(1)2(1)2, P4(1)32, P4(2), P4(2)/m, P4(2)/mbc, P4(2)/mcm, P4(2)/mmc, P4(2)/mnm, P4(2)/n, P4(2)/nbc, P4(2)/ncm, P4(2)/nmc, P4(2)/nnm, P4(2)22, P4(2)2(1)2, P4(2)32, P4(3), P4(3)22, P4(3)2(1)2, P4(3)32, P4bm, P4cc, P4mm, P4nc, P6, P6/m, P6/mcc, P6/mmm, P622, P6cc, P6mm, P-6, P-62c, P-62m, P-6c2, P-6m2, P6(1), P6(1)22, P6(2), P6(2)22, P6(3), P6(3)/m, P6(3)/mcm, P6(3)/mmc, P6(3)22, P6(3)cm, P6(3)mc, P6(4), P6(4)22, P6(5), P6(5)22, Pa-3, Pba2, Pbam, Pban, Pbca, Pbcm, Pbcn, Pc, Pca2(1), Pcc2, Pcca, Pccm, Pccn, Pm, Pm-3, Pm-3m, Pm-3n, Pma2, Pmc2(1), Pmm2, Pmma, Pmmm, Pmn2(1), Pmmn, Pmna, Pn-3, Pn-3m, Pn-3n, Pna2(1), Pnc2, Pnma, Pnn2, Pnna, Pnnm, Pnnn, R3, R32, R3c, R3m, R-3, R-3c, R-3m, N/A, various, unknown} -->
+							<crystal_composition_order></crystal_composition_order> <!-- Type of compositional order in the crystallographic sites of the solid structure. Enum: {ordered, disordered, partly ordered, unknown} -->
+							<crystal_comments replace=""><![CDATA[]]></crystal_comments> <!-- Additional information on solid crystal structure and sites [blob]. Flag 'replace': {yes, no} -->
+							
+						<!-- PROPERTIES -->
+							<molar_mass></molar_mass> <!-- Molar mass of the solid (g/mol) -->
+							<density></density> <!-- Density of the solid (g/cm3) -->
+						<!-- OPTICAL PROPERTIES -->
+							<refringence_type></refringence_type> <!-- Type of refringence of the solid crystal. Enum: {isotropic, uniaxial, biaxial, various, unknown} -->
+							<refringence_sign></refringence_sign> <!-- Sign of birefringence of the solid crystal. Enum: {positive, negative, positive or negative, no, unknown} -->
+							<birefringence></birefringence> <!-- Value of birefringence, Delta_n, of the solid crystal -->
+							<refraction_index_na></refraction_index_na> <!-- Refraction index n_alpha of the solid crystal -->
+							<refraction_index_nb></refraction_index_nb> <!-- **only for uniaxial and biaxial solids** Refraction index n_beta of the solid crystal -->
+							<refraction_index_ng></refraction_index_ng> <!-- **only for biaxial solid** Refraction index n_gamma of the solid crystal -->
+							<dispersion_v></dispersion_v> <!-- **Only for transparent crystals** Abbe number V expressing the visible dispersion of a transparent solid crystal -->
+							<true_color></true_color> <!-- Actual color of the solid  -->
+							<diaphaneity></diaphaneity> <!-- Capacity of the actual solid to transmit light. Enum: {transparent, transparent to translucent, transparent to subtranslucent, transparent to opaque, translucent, translucent to subtranslucent, translucent to opaque, subtranslucent to opaque, opaque, various, unknown} -->
+							<luster></luster> <!-- Description of how and how much the surface of the actual solid reflects light. Enum: {metallic, submetallic, waxy, vitreous, pearly, silky, greasy, resinous, adamantine, earthy, various, unknown} -->
+						<!-- COMMENTS -->
+							<comments replace=""><![CDATA[]]></comments> <!-- Additional information on solid (possible substitution elements, impurities, …) [blob]. Flag 'replace': {yes, no} -->
+						</solid_variables>	
+
+					<!-- FUNDAMENTAL MINERAL PHASE: VARIABLE PARAMETERS -->
+						<!-- **OPTIONAL BLOCK, but COMPULSORY to change what is better known or different from the above fundamental mineral** All unfilled values will be kept the same -->
+						<!-- The variable parameters are mostly used to provide more accurate composition of the actual mineral: for variable or solution/hydration series minerals, or when mineral (sub-)groups are used for ill-defined minerals. Also for adding replacement or impurity elements. Also used for changing structural info of equivalent crystalline fundamental minerals for describing some related amorphous minerals -->
+						<mineral_variables>
+						
+						<!-- POLYTYPE -->
+							<polytype><!-- unique --> 
+							<!-- **put only the actual polytype, if known** When filled it will replace the full list of polytypes -->
+								<name></name> <!-- Name of the actual mineral polytype -->
+								<comments><![CDATA[]]></comments> <!-- Additional information on the mineral polytype [blob] -->
+							</polytype>  
+							
+						<!-- CHEMICAL COMPOSITION -->
+							<formula><![CDATA[]]></formula> <!-- Developed empirical chemical formula of the mineral including replacement and impurities elements, and values of x,y,z fractions and n-hydration number [Latex format] -->
+							<chemical_formula></chemical_formula> <!-- Developed global chemical formula of the mineral -->
+							<hydration_number></hydration_number> <!-- Number or range of numbers of H2O (structural and/or interlayer) in mineral. put 'n' if undefined [ascii] -->
+
+						<!-- ATOMIC COMPOSITION -->
+							<isotope_mixture_type></isotope_mixture_type> <!-- **COMPULSORY when atomic isotopic abundance is not terrestrial** Type of isotopic mixture of the mineral. Enum: {pure isotope, partly substituted, terrestrial abundance, specific abundance, unknown} -->		
+							<!-- **COMPULSORY to list the replacement, impurity, or substituted atoms as well as the main atoms of the mineral with changing numbers or when their isotopic abundance is not terrestrial** There is the choice either to fully redefine the mineral composition, or only to add new atoms and modify some already defined. Two atoms with same <uid> but different <relevance> are considered as different atoms -->
+							<species full_definition=""> <!-- List of the different atoms of the mineral and their number. **FLAG ABS MANDATORY** Flag telling the mode of definition of the composition of the actual mineral. Flag 'full_definition': {yes, no} --> 
+								<specie><!-- multiple -->
+									<uid></uid> <!-- **ABS COMPULSORY** LINK to the existing UID of the natural atomic/molecular species (ex: 'ATOM_Si') or cation (ex: 'ATION_Fe2+’) or anionic radical. By convention will be the cation for elements that can have several valences (Fe, Mn, V, Cr, …) [‘ATOM_(Z)Symbol’ or 'ATION_(Z)SymbolCharge'] or [‘MINION_AOn_Charge’] or [‘MOLION_(Isotopic)ChemicalformulaCharge(Letter)’, 'MOLRAD_' or 'MOLRADION_'] -->
+									<number_min></number_min> <!-- **MANDATORY** Total number of atomic/molecular species with fixed abundance OR minimum number for atomic/molecular species with variable abundance in solid solutions or in n-hydrated minerals (H2O), or in mineral (sub-)group [Float] -->
+									<number_max></number_max> <!-- Maximum total number of atomic/molecular species with variable abundance in solid solutions or in n-hydrated minerals (H2O), or in mineral (sub-)group [Float] -->
+									<isotope_mole_fraction></isotope_mole_fraction> <!-- **MANDATORY when molecule/atom isotopic abundance is not terrestrial** Mole fraction of the isotopic species in the isotopic mixture of this molecule/atom. Note: <number_min> should be still the nominal value for the normal species in the mineral [Float] -->
+									<state></state> <!-- **MANDATORY** State of the atomic/molecular species inside the mineral. OpenEnum: {constituent element, constituent cation, constituent anion, anionic radical, hydration, interlayer physically adsorbed, pure, clathrate network, clathrate guest, in complex, other, unknown} -->
+									<relevance></relevance> <!-- **ABS MANDATORY** Relevance of the atomic/molecular species in the mineral. Enum: {main, replacement, impurity, substituted} -->
+								</specie>
+							</species>
+							<composition_comments replace=""><![CDATA[]]></composition_comments> <!-- Any additional information (range of values of x,n, sum(x+y+z), …) on the composition and formula of the mineral [blob]. Flag 'replace': {yes, no} -->
+							
+						<!-- OXIDES COMPOSITION -->
+							<oxides> <!-- **Full description needed, when changed** Description of oxides composition of the mineral -->
+								<oxide><!-- multiple -->
+									<formula></formula> <!-- Chemical formula of different oxides composing the mineral. Enum: {Ag2O, Al2O3, As2O3, As2O5, B, B2O3, BaO, BeO, Br, CO2, CaO, CdO, CeO2, Ce2O3, Cl, CoO, Co3O4, Cr2O3, Cs2O, CuO, Cu2O, F, Fe, FeO, Fe2O3, Fe3O4, Ga2O3, GeO2, H2O, HfO2, HgO, I, K2O, La2O3, Li2O, MgO, MnO, MnO2, Mn2O3, MoO3, N2O5, Na2O, Nd2O3, Nb2O5, NiO, O2, P2O5, PbO, PbO2, Pt2O3, PtO, Pt, Rb2O, S, SO2, SO3, SO4, Sb2O3, Sb2O5, Sc2O3, SeO2, SiO2, SnO, SnO2, SrO, Ta2O5, ThO2, TiO2, UO2, U3O8, VO2, V2O3, V2O5, WO3, Y2O3, ZnO, ZrO2}	-->
+									<mass_fraction></mass_fraction> <!-- Mass fraction (in %) of each type of oxide composing the actual mineral [Float] -->
+								</oxide>
+							</oxides>
+							<oxides_comments><![CDATA[]]></oxides_comments> <!-- Any additional information (sum of oxides …) on the oxides composition of the mineral [blob] -->
+							
+						<!-- MINERAL CLASSIFICATION -->
+							<strunz_code></strunz_code> <!-- **MANDATORY for glasses or amorphised minerals => put 'N/A'** Code of the mineral or group of minerals in the Strunz classification -->
+							<dana_group></dana_group> <!-- **MANDATORY for glasses or amorphised minerals => put 'N/A'** Group of the mineral in the Dana classification. OpenEnum: {02.08.09, 02.07.01, 02.08.10, …, 76.02.01, N/A} -->
+							<dana_code></dana_code> <!-- **MANDATORY for glasses or amorphised minerals => put 'N/A'** Code of the mineral in the Dana classification -->
+						<!-- CRYSTALLOGRAPHY -->
+							<phase_name></phase_name> <!-- Common name of the mineral phase as used in the literature -->
+							<phase_type></phase_type> <!-- **COMPULSORY for glasses or amorphised minerals of equivalent crystalline mineral** Main type of phase of the mineral. Enum: {crystalline, semicrystalline, paracrystalline, disordered, quasi-amorphous, amorphous, glassy, liquid, mixed, various, unknown} -->
+							<crystal_system></crystal_system> <!-- **COMPULSORY for glasses or amorphised minerals of equivalent crystalline mineral** Crystal lattice system of the mineral. Enum: {triclinic, monoclinic, orthorhombic, trigonal, hexagonal, tetragonal, isometric (cubic), amorphous, N/A, various, unknown} -->
+							<crystal_class></crystal_class> <!-- **MANDATORY for glasses or amorphised minerals => put 'N/A'** Crystalline class name of the mineral. Enum: {pedial, pinacoidal, domatic, sphenoidal, prismatic, pyramidal, disphenoidal, dipyramidal, rhombohedral, ditrigonal-pyramidal, trapezohedral, hexagonal-scalenohedral, trigonal-dipyramidal, ditrigonal-dipyramidal, dihexagonal-pyramidal, dihexagonal-dipyramidal, scalenohedral, ditetragonal-pyramidal, ditetragonal-dipyramidal, tetartoidal, diploidal, hexatetrahedral, gyroidal, hexoctahedral, N/A, various, unknown} -->
+							<crystal_class_symbol></crystal_class_symbol> <!-- **MANDATORY for glasses or amorphised minerals => put 'N/A'** Crystalline class (point group) Hermann-Mauguin short symbol (and Schönflies symbol) of the mineral. Enum: {1 (C1), -1 (Ci), 2 (C2), m (Cs), 2/m (C2h), 222 (D2), mm2 (C2v), mmm (D2h), 3 (C3), -3 (S6), 32 (D3), 3m (C3v), -3m (D3d), 4 (C4), -4 (S4), 4/m (C4h), 422 (D4), 4mm (C4v), -42m (D2d), 4/mmm (D4h), 6 (C6), -6 (C3h), 6/m (C6h), 622 (D6), 6mm (C6v), -6m2 (D3h), 6/mmm (D6h), 23 (T), m-3 (Th), 432 (O), -43m (Td), m-3m (Oh), N/A, various, unknown} -->
+							<crystal_spacegroup></crystal_spacegroup> <!-- **MANDATORY for glasses or amorphised minerals => put 'N/A'** Crystalline Hermann-Mauguin symbol of symmetry space group in point group of the mineral. Enum: {Aba2, Abm2, Ama2, Amm2, C2, C2/c, C2/m, C222, C222(1), Cc, Ccc2, Ccca, Cccm, Cm, Cmc2(1), Cmca, Cmcm, Cmm2, Cmma, Cmmm, F222, F23, F432, F-43c, F-43m, F4(1)32, Fd-3, Fd-3c, Fd-3m, Fdd2, Fddd, Fm-3, Fm-3c, Fm-3m, Fmm2, Fmmm, I222, I23, I2(1)2(1)2(1), I2(1)3, I4, I4/m, I4/mcm, I4/mmm, I41cd, I41md, I422, I432, I4cm, I4mm, I-4, I-42d, I-42m, I-43d, I-43m, I-4c2, I-4m2, I4(1), I4(1)/a, I4(1)/acd, I4(1)/amd, I4(1)22, I4(1)32, Ia-3, Ia-3d, Iba2, Ibam, Ibca, Im-3, Im-3m, Ima2, Imm2, Imma, Immm, P1, P-1, P2, P2/c, P2/m, P222, P222(1), P23, P2(1), P2(1)/c, P2(1)/m, P2(1)2(1)2, P2(1)2(1)2(1), P2(1)3, P3, P312, P31c, P31m, P321, P3c1, P3m1, P-3, P-31c, P-31m, P-3c1, P-3m1, P3(1), P3(1)12, P3(1)21, P3(2), P3(2)12, P3(2)21, P4, P4/m, P4/mbm, P4/mcc, P4/mmm, P4/mnc, P4/n, P4/nbm, P4/ncc, P4/nmm, P4/nnc, P422, P42bc, P42cm, P42mc, P42nm, P42(1)2, P432, P-4, P-42c, P-42m, P-42(1)c, P-42(1)m, P-43m, P-43n, P-4b2, P-4c2, P-4m2, P-4n2, P4(1), P4(1)22, P4(1)2(1)2, P4(1)32, P4(2), P4(2)/m, P4(2)/mbc, P4(2)/mcm, P4(2)/mmc, P4(2)/mnm, P4(2)/n, P4(2)/nbc, P4(2)/ncm, P4(2)/nmc, P4(2)/nnm, P4(2)22, P4(2)2(1)2, P4(2)32, P4(3), P4(3)22, P4(3)2(1)2, P4(3)32, P4bm, P4cc, P4mm, P4nc, P6, P6/m, P6/mcc, P6/mmm, P622, P6cc, P6mm, P-6, P-62c, P-62m, P-6c2, P-6m2, P6(1), P6(1)22, P6(2), P6(2)22, P6(3), P6(3)/m, P6(3)/mcm, P6(3)/mmc, P6(3)22, P6(3)cm, P6(3)mc, P6(4), P6(4)22, P6(5), P6(5)22, Pa-3, Pba2, Pbam, Pban, Pbca, Pbcm, Pbcn, Pc, Pca2(1), Pcc2, Pcca, Pccm, Pccn, Pm, Pm-3, Pm-3m, Pm-3n, Pma2, Pmc2(1), Pmm2, Pmma, Pmmm, Pmn2(1), Pmmn, Pmna, Pn-3, Pn-3m, Pn-3n, Pna2(1), Pnc2, Pnma, Pnn2, Pnna, Pnnm, Pnnn, R3, R32, R3c, R3m, R-3, R-3c, R-3m, N/A, various, unknown} -->
+							<crystal_comments replace=""><![CDATA[]]></crystal_comments> <!-- Additional information on mineral crystal structure and sites [blob]. Flag 'replace': {yes, no} -->
+							
+						<!-- PROPERTIES -->
+							<molar_mass></molar_mass> <!-- Molar mass of the mineral (g/mol) -->
+							<density></density> <!-- Density of the mineral (g/cm3) -->
+						<!-- OPTICAL PROPERTIES -->
+							<refringence_type></refringence_type> <!-- Type of refringence of the mineral crystal. Enum: {isotropic, uniaxial, biaxial, various, unknown} -->
+							<refringence_sign></refringence_sign> <!-- Sign of birefringence of the mineral crystal. Enum: {positive, negative, positive or negative, no, unknown} -->
+							<birefringence></birefringence> <!-- Value of birefringence, Delta_n, of the mineral crystal -->
+							<refraction_index_na></refraction_index_na> <!-- Refraction index n_alpha of the mineral crystal -->
+							<refraction_index_nb></refraction_index_nb> <!-- **only for uniaxial and biaxial minerals** Refraction index n_beta of the mineral crystal -->
+							<refraction_index_ng></refraction_index_ng> <!-- **only for biaxial minerals** Refraction index n_gamma of the mineral crystal -->
+							<dispersion_v></dispersion_v> <!-- **Only for transparent crystals** Abbe number V expressing the visible dispersion of a transparent mineral crystal -->
+						<!-- OPTICAL ASPECT -->
+							<true_color></true_color> <!-- Actual color of the mineral -->
+							<diaphaneity></diaphaneity> <!-- Capacity of the mineral to transmit light. Enum: {transparent, transparent to translucent, transparent to subtranslucent, transparent to opaque, translucent, translucent to subtranslucent, subtranslucent to opaque, translucent to opaque, opaque, unknown} -->
+							<luster></luster> <!-- Description of how and how much the surface of a mineral reflects light. Enum: {metallic, submetallic, waxy, vitreous, pearly, silky, greasy, resinous, adamantine, earthy, unknown} -->
+							<comments replace=""><![CDATA[]]></comments> <!-- Additional information on mineral (possible replacement, substitution elements, impurities, …) [blob]. Flag 'replace': {yes, no} -->
+						</mineral_variables>
+
+					<!-- FUNDAMENTAL LIQUID PHASE: VARIABLE PARAMETERS -->
+						<!-- **OPTIONAL BLOCK, but COMPULSORY to change what is better known or different from the above fundamental liquid** All unfilled values will be kept the same -->
+						<!-- The variable parameters are mostly used to provide the accurate composition of the actual liquid -->
+						<liquid_variables>
+						<!-- CHEMICAL COMPOSITION -->
+							<formula><![CDATA[]]></formula> <!-- Developed structural (empirical) chemical formula of the liquid [Latex format] -->	
+							<chemical_formula></chemical_formula> <!-- Developed global chemical formula of the liquid -->
+							
+						<!-- CHEMICAL FUNCTIONS AND BONDS -->
+							<chemical_functions full_definition=""> <!-- List of the different chemical functions present in the liquid, except those already in the molecular "species". **FLAG ABS MANDATORY** Flag telling the mode of definition of the chemical functions of the actual liquid. Flag 'full_definition': {yes, no} -->
+								<chemical_function><!-- multiple -->
+									<uid></uid> <!-- **ABS COMPULSORY** LINK to the existing UID of the chemical functions of the liquid  [‘GROUPMOLEC_RGroupformula’, ‘GROUPION_ RGroupformulaCharge’, ‘GROUPRAD_ RGroupformula’, ‘MINION_IonformulaCharge’] -->
+									<number></number> <!-- Number or range of numbers of this chemical function present in the liquid -->
+								</chemical_function>
+							</chemical_functions>
+							
+						<!-- MOLECULAR OR ATOMIC COMPOSITION -->
+							<isotope_mixture_type></isotope_mixture_type> <!-- **COMPULSORY when molecular isotopic abundance is not terrestrial** Type of isotopic mixture of the liquid. Enum: {pure isotope, partly substituted, terrestrial abundance, specific abundance, unknown} -->
+							
+							<!-- **COMPULSORY to list the impurity, replacement or substituted molecules/atoms as well as the main molecules/atoms of the liquid with changing numbers or when their isotopic abundance is not terrestrial** There is the choice either to fully redefine the liquid composition, or only to add new species and modify some already defined. Two species with same <uid> but different <relevance> are considered as different species -->
+							<species_mole_fraction_unit></species_mole_fraction_unit> <!-- Unit for the molar fraction or concentration of the species in the liquid. Enum: {mol/mol, mol/g, mol/kg, mol/l}, default = 'mol/mol' -->
+							<species full_definition=""> <!-- List of the different molecular or atomic species of the liquid and their number. **FLAG ABS MANDATORY** Flag telling the mode of definition of the composition of the actual liquid. Flag 'full_definition': {yes, no} -->	
+								<specie><!-- multiple -->
+									<uid></uid> <!-- **ABS COMPULSORY* LINK to the existing UID of the molecular species (molecule or molecular ion) or element (atom or ion) composing the liquid. [‘MOLEC_(Isotopic)Chemicalformula(Letter)’, ‘MOLION_(Isotopic)ChemicalformulaCharge(Letter)’, 'MOLRAD_' or 'MOLRADION_'] or [‘ATOM_(Z)Symbol’ or 'ATION_(Z)SymbolCharge'] -->
+									<mole_fraction></mole_fraction> <!-- **MANDATORY** Mole fraction or concentration of molecular/atomic (natural or isotopic) species in the liquid (Unit: in "species_mole_fraction_unit") [Float] -->
+									<mole_fraction_error></mole_fraction_error> <!-- **MANDATORY when <mole_fraction> has a value** Absolute uncertainty on mole fraction or concentration of the species in the liquid (Unit: in "species_mole_fraction_unit") [Float] -->
+									<state></state> <!-- **MANDATORY** State of the molecular/atomic species inside the liquid. OpenEnum: {constituent element, constituent cation, constituent anion, constituent molecular, molecular ion,  pure, mixed, monomers, dimers, multimers, solute, solvent, liquid solution, hydration, hydrated, other, unknown} -->
+									<relevance></relevance> <!-- **ABS MANDATORY** Relevance of the molecular/atomic species in the liquid. Enum: {main, substituted, impurity} -->
+								</specie>
+							</species>			
+							<composition_comments replace=""><![CDATA[]]></composition_comments> <!-- Any additional information or comments on the composition of the liquid [blob]. Flag 'replace': {yes, no} -->
+						<!-- PHASE -->
+							<phase_type></phase_type> <!-- Main type of phase of the liquid. Enum: {liquid, supercooled liquid, supercritical fluid, unknown} -->
+						<!-- PROPERTIES -->
+							<ph></ph> <!-- pH of the aqueous solution (in STP conditions) -->
+							<molar_mass></molar_mass> <!-- Molar mass of the liquid per mole of solvent (g/mol) -->
+							<density></density> <!-- Density of the liquid (at STP) (g/cm3) -->
+						<!-- OPTICAL PROPERTIES -->
+							<refraction_index_n></refraction_index_n> <!-- Refraction index, n, of the liquid (at 589.3 nm) -->
+							<dispersion_v></dispersion_v> <!-- Abbe number V expressing the visible dispersion of a transparent liquid -->
+							<diaphaneity></diaphaneity> <!-- Capacity of the liquid to transmit light. Enum: {transparent, transparent to translucent, translucent, translucent to opaque, opaque, unknown} -->
+							<comments replace=""><![CDATA[]]></comments> <!-- Additional information on liquid (impurities, …) [blob]. Flag 'replace': {yes, no} -->
+						</liquid_variables>
+						
+					<!-- BASIC CONSTITUENT CRYSTAL TEXTURE -->
+						<crystal> <!-- OPTION -->
+							<size_unit></size_unit> <!-- **COMPULSORY when <size_median/_min/_max> used** - Unit for the basic constituent crystal sizes (diameter). Enum: {nm, micron, mm, cm} -->
+							<size_method><![CDATA[]]></size_method> <!-- Description of the crystal size (mean/width or min/max) definition, and of the method of determination of the crystal size distribution [blob] -->
+							<sizes> <!-- **OPTION** Size distribution of the basic constituent crystals -->
+								<size><!-- multiple -->
+									<median></median> <!-- **MANDATORY for OPTION, or min & max** Median size (diameter) of basic constituent crystals. [Float] Unit: in “basic_constituent_crystal_size_unit” -->
+									<width></width> <!-- Full width at half maximum of the size distribution (diameter) of basic constituent crystals. [Float] Unit: in “basic_constituent_crystal_size_unit” -->
+									<min></min> <!-- **MANDATORY for OPTION, or median** Smallest size (diameter) of this crystal size range. [Float] Unit: in “basic_constituent_crystal_size_unit” -->
+									<max></max> <!-- **MANDATORY for OPTION, or median** Largest size (diameter) of this crystal size range. [Float] Unit: in “basic_constituent_crystal_size_unit” -->
+									<fraction></fraction> <!-- Mass fraction of basic constituent crystals comprised between size min and size max (diameter) [Float] -->
+									<fraction_error></fraction_error> <!-- Absolute uncertainty on the mass fraction comprised between size min and size max (diameter) [Float] -->
+									<shape></shape> <!-- Description of the shape of the individual basic constituent crystals of this size range. Enum: {amorphous, irregular, equant, reniform, globular, spherical, flakes, platy, tabular, lathlike, columnar, acicular, capillary, cubic, cylindrical, hexagonal, octahedral, prismatic, pyramidal, rhombohedral, nuggets, botryoidal, dendritic, spheres aggregate, aggregate, fluid, other, unknown} -->
+								</size>
+							</sizes>
+							<size_distribution><![CDATA[]]></size_distribution> <!-- Description and parameters of the crystal size distribution of the basic constituent [blob] -->
+						</crystal>
+						<texture></texture> <!-- Internal texture of the basic constituent crystals. Enum: {monocrystalline, polycrystalline, cryptocrystalline, nanocrystalline, metamict, amorphous, glassy, polymeric, macromolecular, complex, liquid, other, unknown} -->
+					<!-- BASIC CONSTITUENT COMMENTS -->
+						<comments><![CDATA[]]></comments> <!-- Additional information on basic constituent [blob] -->
+					</basic_constituent>		
+				</basic_constituents>
+						
+			<!-- CONSTITUENTS -->					
+				<constituents> <!-- **ABS MANDATORY when no basic constituent** --> <!-- Constituents composing the material grains -->
+					<constituent><!-- multiple -->
+					<!-- CONSTITUENT IMPORT MODE AND INDEX -->
+						<import_mode></import_mode> <!-- **ABS MANDATORY** Mode of import of 'constituent' data. Enum: {first import, inherited, use existing, ignore, draft, no change, correction} -->
+						<uid></uid> <!-- **ABS MANDATORY to CREATE. Except when "import_mode"='use existing': it is the LINK to the UID of the existing constituent** Unique identifier code (UID) given to the constituent and should be of the style ‘CONST_AB_yyyymmdd_123...’ where ‘AB’ is your initials, 'yyyymmdd' the current date, and '123...' should be alphanumeric ascii (only with '_'), with no more than 6 characters -->									
+								
+					<!-- CONSTITUENT ARRANGEMENT AND ABUNDANCE IN MATERIAL -->
+						<!-- When the abundance info is fully known at the species level, then give it at the species level. The values (and errors) at the constituent level will thus be calculated during import where the fields are kept empty. Provide below abundances for constituents (absolute or fractional, but homogeneously for all constituents and fundamental constituents (previous block)) only when values are known only at this level or more accurately than the sum of the species abundances -->
+						<arrangement></arrangement> <!-- **MANDATORY** Relative arrangement of the constituent within the material grains. OpenEnum: {single phase, in multi-phases, homogeneous in multi-phases, heterogeneous in multi-phases, endmember in polyphase, matrix, inclusion, bubble, suspended particles, medium of suspension, in aggregate, in agglomerate, pore filling, coated core, coating shell, concentric zone, sector zone, layer zone, mixed-layer, complex intimate mix, sorbed phase, other, unknown} -->
+						<mass></mass> <!-- **MANDATORY or fill <mass_fraction>** Total mass of the constituent in the material [Float] (unit: g) -->
+						<mass_error></mass_error> <!-- **MANDATORY when <mass> has a value** Absolute uncertainty on the total mass of the constituent in the material [Float] (unit: g) -->
+						<mass_fraction></mass_fraction> <!-- **MANDATORY or fill <mass>** Mass fractions of the constituent in the material [Float] -->
+						<mass_fraction_error></mass_fraction_error> <!-- **MANDATORY when <mass_fraction> has a value** Absolute uncertainty on Mass fractions of the constituent in the material [Float] -->
+						<abundance_comments><![CDATA[]]></abundance_comments> <!-- Additional information or comments about the abundance of this constituent in the material, or adsorbed on another constituent [blob] -->
+					
+					<!-- SORPTION -->
+						<sorption_constituents> <!-- **ABS MANDATORY for sorbed phase: at least one** Constituents on which this constituent is sorbed -->
+							<constituent_uid></constituent_uid><!-- multiple --> <!-- **ABS MANDATORY** LINK to the existing UID of the constituent on which this constituent is sorbed [‘CONST_AB_yyyymmdd_123...’] -->
+						</sorption_constituents>
+						<sorption_mass_fraction></sorption_mass_fraction> <!-- **MANDATORY for sorbed phase** Mass fraction of the sorbed phase (molecular species) relative to the mass of the constituent(s) on/in which it is sorbed [Float] -->
+						<sorption_mass_fraction_error></sorption_mass_fraction_error> <!-- **MANDATORY when "sorption_mass_fraction" has a value** Absolute uncertainty on the mass fraction of the sorbed phase (molecular species) relative to the mass of the constituent(s) on/in which it is sorbed [Float] -->
+						
+					<!-- **When "constituent_import_mode"='use existing': All Key Words below SHOULD NOT BE FILLED** - You can then remove all lines below up to and including the </species> tag -->
+						
+					<!-- CONSTITUENT NAME, FAMILY AND SPECIES ORGANIZATION -->
+						<name></name> <!-- **ABS MANDATORY** Constituent name. May contain explicit info on the constituent: species name and some constituent properties (phase, …) -->
+						<family></family> <!-- **ABS MANDATORY** Family of the constituent. Enum: {molecular solid, covalent network solid, ionic solid, metallic solid, mineral, molecular liquid, atomic liquid, ionic liquid, metallic liquid, liquid solution, adsorbed, clusters, gas, complex mix, other, unknown} -->
+						<class></class> <!-- **MANDATORY** Class of solid composing the constituent. Enum: {non polar molecular solid, polar molecular solid, hydrogen bonded molecular solid, mixed molecular solid, chain covalent network solid, sheet covalent network solid, tridimentional covalent network solid, glass, acid salt, alkali salt, normal salt, mixed salt, true metal, pseudometal (semi-conductor), native element, non-silicate mineral, silicate mineral, organic mineral, non polar molecular liquid, polar molecular liquid, hydrogen bonded molecular liquid, molecular liquid solution, atomic liquid, atomic liquid solution, ionic liquid, ionic liquid solution, metallic liquid, metallic liquid solution, mixed liquid solution, atomic adsorbed, molecular adsorbed, atomic clusters, molecular clusters, atomic gas, molecular gas, complex mix, other, unknown} --> 
+						<compound_type></compound_type> <!-- **MANDATORY** Type of solid compound composing the constituent. OpenEnum: {elemental solid, elemental mineral, noble gas solid, carbon allotrope, organic molecular solid, organic mineral, inorganic molecular solid, clathrate, clathrate hydrate, hydrate, homopolymer, copolymer, molecular solid solution, solid molecular mixture, oxide, hydroxyde, oxide-hydroxide, non-oxide ceramic, sulfide, antimonate, antimonite, arsenate, arsenite, borate, bromate, bromide, carbonate, chlorate, chloride, chlorite, chromate, cyanate, cyanide, fluoride, fulminate, halide, iodate, iodide, molybdate, nitrate, nitrile, nitrite, perchlorate, phosphate, phosphite, rhenate, selenate, selenide, selenite, sulfate, sulfide, sulfite, sulfosalt, tellurate, tellurite, tungstate, vanadate, vanadium oxysalt, organic salt, silicate, cyclosilicate, inosilicate, nesosilicate, phyllosilicate, sorosilicate, tectosilicate, metal, metallic alloy, semi-conductor, complex mineral mix, solid oligomers, homopolymer, copolymer, Insoluble Organic Matter, Soluble Organic Matter, complex macromolecular mixture, complex organic-mineral mix, liquid, liquid solution, physically adsorbed phase, chemically adsorbed phase, interlayer phase, clusters, gas, gas mixture, other compound, other complex mix, unknown,…}  -->
+						
+					<!-- CHEMICAL COMPOSITION -->
+						<formula><![CDATA[]]></formula> <!-- Developed structural (empirical) chemical formula of the constituent, only when not using a fundamental species [Latex format] -->
+						<chemical_formula></chemical_formula> <!-- Developed global chemical formula of the constituent, only when not using a fundamental species -->
+						<hydration></hydration> <!-- Flag telling if the constituent contains structural H2O molecules. BoolEnum: {yes, no} or {true, false} -->
+						<hydration_number></hydration_number> <!-- **MANDATORY for hydration** Number or amount (any unit, to be specified), or range, of H2O molecules in the constituent structure -->
+
+					<!-- CHEMICAL FUNCTIONS AND BONDS -->
+						<!-- Chemical bonds and chemical functions composing the constituent may be the only way to describe complex constituents. -->	
+						<chemical_functions> <!-- List of the different chemical functions present in the constituent, except those already in the molecular "species" -->
+							<chemical_function><!-- multiple -->
+								<uid></uid> <!-- **MANDATORY** LINK to the existing UID of the 'chemical functions' of the constituent  [‘GROUPMOLEC_RGroupformula’, ‘GROUPION_ RGroupformulaCharge’, ‘GROUPRAD_ RGroupformula’, ‘MINION_IonformulaCharge’] -->
+								<number></number> <!-- Amount of this chemical function (any unit, to be specified) -->
+							</chemical_function>
+						</chemical_functions>
+						<chemical_bonds> <!-- list of the different chemical bonds of the constituent, except those already in the molecular "species" -->
+							<chemical_bond><!-- multiple -->
+								<uid></uid> <!-- **MANDATORY** LINK to the existing UID of the 'chemical bonds' of the constituent [‘BOND_ZAtom1(BondSymbol)ZAtom2(Charge)’] -->	
+								<number></number> <!-- Amount of this bond (any unit, to be specified) -->
+							</chemical_bond>
+						</chemical_bonds>
+
+					<!-- ATOMIC OR MOLECULAR COMPOSITION -->
+						<isotope_mixture_type></isotope_mixture_type> <!-- **ABS MANDATORY** Type of isotopic mixture of the species in the constituent. Enum: {pure isotope, partly substituted, terrestrial abundance, specific abundance, unknown} -->
+						<!-- For pure isotopes and for natural or synthetic isotopic mixtures in terrestrial abundance (atom, molecule) or for substituted molecular mixtures (molecule), i.e. with one pure isotopic atom and the others in terrestrial abundance => link to the single corresponding fundamental species existing in the database (if not present: request it) -->
+						<!-- For non-standard natural or synthetic isotopic mixtures => build your own mixture using several fundamental pure isotopic species (at least the most abundant) -->
+						<species_mole_fraction_unit></species_mole_fraction_unit> <!-- **ONLY for liquids and amorphous solids** Unit for the molar fraction or concentration of the species in the liquid constituent. Enum: {mol/mol, mol/g, mol/kg, mol/l}, default = 'mol/mol' -->
+						<species> <!-- **ABS MANDATORY at least one** Species composing the constituent -->
+							<specie><!-- multiple -->
+							<!-- SPECIES FAMILY AND STATE -->
+								<family></family> <!-- **ABS MANDATORY** General family of the species composing the constituent. Enum: {atom, element, molecule, chemical function, unknown} - 'atom' is for individual atom, 'element' for atom inside a structure (molecule, solid, liquid...). They both refer to the 'atom' species -->
+								<uid></uid> <!-- **ABS MANDATORY except when 'unknown'** LINK to the existing UID of the atomic or molecular species composing the constituent
+								[Atom: ‘ATOM_(Z)Symbol’ or 'ATION_(Z)SymbolCharge'], [Molecule: ‘MOLEC_(Isotopic)Chemicalformula(Letter)’, ‘MOLION_(Isotopic)ChemicalformulaCharge(Letter)’, 'MOLRAD_' or 'MOLRADION_'] -->
+								
+							<!-- SPECIES ABUNDANCE IN CONSTITUENT -->
+								<!-- When some abundance info is known at the species level, provide them (mole or mass, absolute or fractional, but homogeneously for all species). The values (and errors) kept empty at the constituent/material/layer/sample levels will be calculated during import only when the species abundances are fully known.  -->
+								<!-- **MANDATORY for atom, element, molecule: fill at least one of <mole>, <mole_fraction>, <mass>, <mass_fration> or <number>** Put 'NULL' in one of these if abundance is only known at an higher level (constituent/material/layer/sample) -->
+								<mole></mole> <!-- **MANDATORY, or fill one of 4 others** Number of moles of the species in simple molecular constituent [Float] (mole) -->
+								<mole_error></mole_error> <!--  **MANDATORY when <mole> has a value** Absolute uncertainty on the number of moles of the species in simple molecular constituent [Float] (mole) -->
+								<mole_fraction></mole_fraction> <!-- **MANDATORY, or fill one of 4 others** Mole fraction or concentration of the species in the constituent (Unit: in "species_mole_fraction_unit") [Float] -->
+								<mole_fraction_error></mole_fraction_error> <!-- **MANDATORY when <mole_fraction> has a value** Absolute uncertainty on mole fraction or concentration of the species in the constituent (Unit: in "species_mole_fraction_unit") [Float] -->
+								<mass></mass> <!-- **MANDATORY, or fill one of 4 others** mass of the species in the constituent [Float] (g) -->
+								<mass_error></mass_error> <!-- **MANDATORY when <mass> has a value** Absolute uncertainty on the mass of the species in the constituent [Float] (g) -->
+								<mass_fraction></mass_fraction> <!-- **MANDATORY, or fill one of 4 others** Mass fraction of the species in the constituent (can be calculated from material masses). Entry for molecules adsorbed / inserted / structural in mineral or other constituents [Float] -->
+								<mass_fraction_error></mass_fraction_error> <!-- **MANDATORY when <mass_fraction> has a value** Absolute uncertainty on mass fraction of the species in the constituent [Float] -->
+								<number_min></number_min> <!-- **MANDATORY, or fill one of 4 others** Nominal or minimum total number of the molecular/atomic species in the constituent formula [Float] -->
+								<number_max></number_max> <!-- Maximum total number of the molecular/atomic species in the constituent formula [Float or 'n' if undefined] -->
+								
+							<!-- SPECIES STATE IN CONSTITUENT -->
+								<state></state> <!-- **MANDATORY** State of the species inside the compound composing the constituent. OpenEnum: {constituent element, constituent cation, constituent anion, constituent mer, constituent molecular, molecular ion,  anionic radical, pure, mixed, matrix, monomers, dimers, multimers, solute, solvent, liquid solution, solid solution, clathrate network, clathrate guest, hydration, hydrated, in complex, physically adsorbed, chemically adsorbed, interlayer physically adsorbed, other, unknown} -->
+								<relevance></relevance> <!-- **ABS MANDATORY for atom, element, molecule** Relevance of the species in the constituent. Enum: {main, replacement, substituted, impurity, product, precursor, unknown} -->
+								<comments><![CDATA[]]></comments> <!-- Additional information on species state, origin and composition in the constituent [blob] -->
+							</specie>
+						</species>
+						<composition_comments><![CDATA[]]></composition_comments> <!-- Any additional information on the composition and formula of the constituent [blob] -->
+
+					<!-- CONSTITUENT PHASE -->						
+						<phase_name></phase_name> <!-- Name of the constituent phase (not normalized but mostly crystal system) as defined in the literature, and any information on crystal class, symbol, and spacegroup (Hermann-Mauguin symbol) -->
+						<phase_type></phase_type> <!-- **MANDATORY** Main type of constituent phase. Enum: {crystalline, semicrystalline, paracrystalline, disordered, quasi-amorphous, amorphous, glassy, mesophase, supercooled liquid, liquid, supercritical fluid, adsorbed, interlayer, adsorbed+interlayer, mono-multimer, cluster, gas, mixed, other, unknown} -->
+						<phase_comments></phase_comments> <!-- Any information on the constituent crystal structure (system, class, class symbol, spacegroup, crystal sites, ...) [blob] -->
+						
+					<!-- CONSTITUENT CRYSTAL TEXTURE -->
+						<crystal> <!-- OPTION -->
+							<size_unit></size_unit> <!-- **COMPULSORY when <size_median/_min/_max> used** - Unit for the constituent crystal sizes (diameter). Enum: {nm, micron, mm, cm} -->
+							<size_method><![CDATA[]]></size_method> <!-- Description of the crystal size (mean/width or min/max) definition, and of the method of determination of the crystal size distribution [blob] -->
+							<sizes> <!-- **OPTION** Size distribution of the constituent crystals -->
+								<size><!-- multiple -->
+									<median></median> <!-- **MANDATORY for OPTION, or min & max** Median size (diameter) of constituent crystals. [Float] Unit: in “constituent_crystal_size_unit” -->
+									<width></width> <!-- Full width at half maximum of the size distribution (diameter) of constituent crystals. [Float] Unit: in “constituent_crystal_size_unit” -->
+									<min></min> <!-- **MANDATORY for OPTION, or median** Smallest size (diameter) of this crystal size range. [Float] Unit: in “constituent_crystal_size_unit” -->
+									<max></max> <!-- **MANDATORY for OPTION, or median** Largest size (diameter) of this crystal size range. [Float] Unit: in “constituent_crystal_size_unit” -->
+									<fraction></fraction> <!-- Mass fraction of constituent crystals comprised between size min and size max (diameter) [Float] -->
+									<fraction_error></fraction_error> <!-- Absolute uncertainty on the mass fraction comprised between size min and size max (diameter) [Float] -->
+									<shape></shape> <!-- Description of the shape of the individual constituent crystals of this size range. Enum: {amorphous, irregular, equant, reniform, globular, spherical, flakes, platy, tabular, lathlike, columnar, acicular, capillary, cubic, cylindrical, hexagonal, octahedral, prismatic, pyramidal, rhombohedral, nuggets, botryoidal, dendritic, spheres aggregate, aggregate, fluid, other, unknown} -->
+								</size>
+							</sizes>
+							<size_distribution><![CDATA[]]></size_distribution> <!-- Description and parameters of the crystal size distribution of the constituent [blob] -->
+						</crystal>
+						<texture></texture> <!-- Internal texture of the constituent crystals. Enum: {monocrystalline, polycrystalline, cryptocrystalline, nanocrystalline, metamict, amorphous, glassy, polymeric, macromolecular, complex, liquid, other, unknown} -->
+
+					<!-- PROPERTIES -->
+						<molar_mass></molar_mass> <!-- Molar mass (value with uncertainty) of the constituent (g/mol) -->
+						<density></density> <!-- Density (value with uncertainty) of the constituent(g/cm3) -->
+
+					<!-- OPTICAL PROPERTIES -->
+						<refringence></refringence> <!-- Any information on the refringence of the constituent: type, sign, birefringence, dispersion, ... -->
+						<refraction_index_n></refraction_index_n> <!-- Refraction index(es), n, (value or range) of the constituent (precise which one and at which wavelength) -->
+						<true_color></true_color> <!-- Color of the constituent  -->
+						<diaphaneity></diaphaneity> <!-- Capacity of the constituent to transmit light. Enum: {transparent, transparent to translucent, transparent to subtranslucent, transparent to opaque, translucent, translucent to subtranslucent, translucent to opaque, subtranslucent to opaque, opaque, various, unknown} -->
+						<luster></luster> <!-- Description of how and how much the surface of the constituent reflects light. Enum: {metallic, submetallic, waxy, vitreous, pearly, silky, greasy, resinous, adamantine, earthy, various, unknown} -->
+						
+					<!-- CONSTITUENT COMMENTS -->
+						<comments><![CDATA[]]></comments> <!-- Additional information on constituent state and compound organization, in particular for coating of grains: coating thickness, phase, and texture  (key-words ?) [blob] -->
+					</constituent>
+				</constituents>
+			</precursor_material>
+		</precursor_materials>
+	
+	<!-- SERIES OF PROCESSINGS APPLIED TO CREATE THE SAMPLE -->
+		<!-- **OPTION** Describe all the processings of the precursor sample, matter(s), and/or material(s) up to the final sample before the experiment -->
+		<processings type="sample"> <!-- Processing steps applied to the precursor material(s), matter(s) and/or sample(s) to create the sample -->
+			<title><![CDATA[]]></title> <!-- **ABS MANDATORY for OPTION** Title for the whole processing sequence of the material(s), matter(s) and/or sample(s) -->
+			
+		<!-- PROCESSINGS: PRECURSOR SAMPLE(S), MATTER(S) and/or MATERIALS --> 	
+			<!-- List all the material(s), matter(s) and/or sample(s) that have been used as initial precursors for this whole processing sequence. They can be also simply described in 'process' of the first step -->
+			<precursor_samples> <!-- **OPTION** -->
+				<sample_uid></sample_uid><!-- multiple -->  <!-- LINK to the existing UID of the precursor sample(s) of these processings [‘SAMPLE_AB_yyyymmdd_123...’] -->
+			</precursor_samples>
+		<!-- AND / OR -->
+			<precursor_matters> <!-- **OPTION** -->
+				<matter_uid></matter_uid><!-- multiple -->  <!-- LINK to the existing UID of the precursor matter(s) of these processings [‘MATFLUID_Species_Code_Provider_yyyymmdd’, ‘MATMIN_MineralMatter_AB_yyyymmdd', ‘MATSOL_SolidMatter_AB_yyyymmdd’, ‘MATCARB_carbonaceous.matter_AB_yyyymmdd’, ‘MATXXX_ExtraterrestrialName_AB_yyyymmdd’ ...] -->
+			</precursor_matters>
+		<!-- AND / OR -->
+			<precursor_materials> <!-- **OPTION** -->
+				<material_uid></material_uid><!-- multiple -->  <!-- LINK to the existing UID of precursor materials of these processings [‘MATERIAL_AB_yyyymmdd_123...’] -->
+			</precursor_materials>
+
+		<!-- PROCESSINGS: PRODUCED SAMPLE OR MATERIALS -->
+			<!-- Indicate the sample or the (partial) list of material(s) of the sample that have been produced by this whole processing sequence -->
+			<!-- **MANDATORY for OPTION: one of the following** -->
+			<product_sample_uid></product_sample_uid><!-- single --> <!-- LINK to the existing UID of the final sample produced by these processings [‘SAMPLE_AB_yyyymmdd_123...’] -->
+		<!-- OR -->
+			<product_materials> <!-- **OPTION** -->
+				<material_uid></material_uid><!-- multiple --> <!-- LINK to the existing UID of the final sample materials produced by these processings (in case only part of the sample materials are produced by these processing) [‘MATERIAL_AB_yyyymmdd_123...’] -->
+			</product_materials>
+
+		<!-- PROCESSING STEPS -->
+			<processing_steps> <!-- **ABS MANDATORY for OPTION** -->
+				<processing_step><!-- multiple -->
+				<!-- PROCESSING STEPS HISTORY -->
+					<step_order></step_order> <!-- **ABS MANDATORY** Order of occurrence of the processing step [integer] -->
+					<chronology></chronology> <!-- **ABS MANDATORY** Chronology of the processing step. Enum: {before layer formation, during layer formation, after layer formation, after sample formation, on parent sample} -->
+					<date></date> <!-- Date of the processing step [Format: 'YYYY-MM-DD'] -->
+
+				<!-- PROCESSINGS: PROCESSES AND CONDITIONS --> 
+					<!-- Conditions of processing of the precursor material(s), matter(s), and/or sample(s) -->
+					<types> <!-- **MANDATORY** -->
+						<type></type><!-- multiple --> <!-- **MANDATORY** Type(s) of processing step of the material(s), matter(s) and/or sample(s). Enum: {no, mixing, layer formation, thermal, pressure, mechanical, fluid physical, chemical, irradiation} -->
+					</types>
+					<process></process> <!-- **MANDATORY** Description of which material, matter and/or sample is processed, the type of process and conditions during the processing step. See type below [blob] -->
+					<!-- *Mixing*: Mode of mixing of the different precursor materials or matters in the ‘precursor layer’ or in the ‘sample layer’ and its physical characteristics -->
+					<!-- *layer formation*: Mode of formation of the ‘precursor layer’ or ‘sample layer’ and its physical characteristics -->
+					<!-- *Thermal*: Temperature of the material(s)/layer/sample during thermal processing + uncertainty and duration (time) of the thermal stage. Give the units you use -->
+					<!-- *Pressure*: Hydrosatatic pressure of the material(s)/layer/sample during pressure processing + uncertainty and duration (time) of the pressure stage. Give the units you use -->
+					<!-- *Mechanical*: Mechanical processing (stressing, grinding, crushing, sieving, manual selection, section, polishing, …) of the material(s)/layer/sample during mechanical processing + method/technique used + forces applied (stress, crushing, …) + duration (time) of the mechanical stage. Give the units you use -->
+					<!-- *Fluid physical*: Type of fluid (gas, liquid, liquid solution) and molecule(s) or matter(s), with their mole fraction(s), in contact with the material(s)/layer/sample during fluid processing. + Temperature, pressure and pH of the fluid in contact with the material(s)/layer/sample during fluid processing + uncertainties and duration (time) of the fluid stage. Give the units you use -->
+					<!-- *Chemical*: Chemical method, protocol and reactions of formation/alteration of material(s)/ constituents(s)/ species(s) in the material(s)/layer/sample during irradiation processing + uncertainties and duration (time) of the chemical stage -->
+					<!-- *Irradiation*: Type of irradiation (photons of all energies) or particle bombardment (ions, electrons, …) + irradiation source (type + model), filter, irradiation energy (+ distribution) of the material(s)/layer/sample during irradiation processing. + Irradiation or particle bombardment conditions (flux or power, duration (time), dose or energy dose, …) of the material(s)/layer/sample during irradiation processing. Give the units you use -->
+					<changes><![CDATA[]]></changes> <!-- Observed/expected physical changes (textural/structural/phase changes, …) and chemical changes (new species, composition, complexity, …) of the material(s), matter(s) and/or sample(s) during the processing step [blob] -->
+				</processing_step>
+			</processing_steps>
+
+			<comments><![CDATA[]]></comments> <!-- Additional or synthetic information on the whole processing of the material(s), matter(s) and/or sample(s) [blob] -->
+		</processings>
+	</sample>
+</import>

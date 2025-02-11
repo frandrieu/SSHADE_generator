@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+Data type : Experimentalist
+
+Specific notes :
+	-
+
+General notes : 
+	- Most of the tags are optional, you can remove the really unnecessary ones.
+	- Tags marked as 'multiple' can be copied (with its block of sub-tag, up to the ending tag) if needed.
+	- all blocs marked "OPTION" can be fully removed if not needed (now or in the future)
+	- **ABS MANDATORY / ABS COMPULSORY**: a value need to be absolutely provided, no way to escape! (SSHADE will not function properly if absent).
+	- **MANDATORY / COMPULSORY**: very important values for the search of the data. If the value (txt or numeric) of one tag is not known (or irrelevant in your case), then put 'NULL' and write a comment to keep track of the missing value. Remove comment when value is added.
+	- **MANDATORY / COMPULSORY only for ...**: when a value is optionally MANDATORY the condition is written. 
+	- "LINK to existing UID" (unique identifier): references to another table in SSHADE. You have to reconstruct (easy for some: rule is in comment) or found this existing UID in the database beforehand (use "Provider/Full Search" menu in SSHADE).
+	- "UID to CREATE": you need to create this UID using their specific rules of creation that are explained in their attached comment. Use only alphanumeric characters and '_'.
+	- For UID you can use only alpha-numeric characters and the following: '_', '-'
+	- Enumeration type ("Enum" or "OpenEnum") must contain one single item from the list given in brackets {}.
+	- use a CDATA tag when a value contains at least one special character (ie: &, >, <,...). Example: <![CDATA[AT&T]]> for AT&T
+	- The data format is noted beetween [] and is 'ascii' when not specified. Ex: [Float], [Integer]. For [float] 2 formats are possible: decimal (123.456) or scientific (1.234e-56)  
+	- when no numerical format or Enum is specified, it is free text but limited to 256 characters. Only those noted [blob] have no size limitation.
+	- to import data for the first time you have to set <import_mode>='first import'. To correct data you have to change it to 'correction'.
+	- when a <filename> is given, then the file should be ziped with this xml file for import. 
+-->
+
+<import type="experimentalist" ssdm_version="0.9.0"
+        xmlns="http://sshade.eu/schema/import"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://sshade.eu/schema/import http://sshade.eu/schema/import-0.9.xsd">
+
+	<experimentalist><!-- multiple -->
+		<import_mode>first import</import_mode> <!-- **ABS MANDATORY** Mode of import of the experimentalist data. Enum: {first import, ignore, draft, no change, correction} -->
+		<uid>EXPER_</uid> <!-- **ABS MANDATORY to CREATE** Unique identifier code given to the experimentalist. Should be of the style ‘EXPER_Firstname_Lastname(_n)’ -->
+		<manager_databases> <!-- **ABS MANDATORY at least one** -->
+			<database_uid>DB_</database_uid> <!-- **ABS MANDATORY** LINK to the existing UID of the database which manages the experimentalist information [‘DB_DatabaseAcronym’] -->	
+		</manager_databases>
+		
+	<!-- EXPERIMENTALIST NAME -->
+		<first_name></first_name> <!-- **ABS MANDATORY, requested for DOI** First name (given name) -->
+		<family_name></family_name> <!-- **ABS MANDATORY, requested for DOI** Family name (last name) -->
+		<acronym></acronym> <!-- **MANDATORY** Initials of first and last name. Ex: BS, FROD -->
+		<orcid_identifier></orcid_identifier> <!-- **MANDATORY** ORCID identifier code that uniquely identify the experimentalist -->
+		<alternate_identifiers> <!-- **OPTION** -->
+			<alternate_identifier><!-- multiple -->
+				<scheme></scheme> <!-- **ABS MANDATORY in OPTION** Alternate scheme that provideds the unique identifiers of the experimentalist. Enum: {ISNI, ResearcherID, ScopusAuthorID} -->
+				<code></code> <!-- **ABS MANDATORY in OPTION** Alternate code that uniquely identify the experimentalist in this scheme -->
+			</alternate_identifier>
+		</alternate_identifiers>
+		<state>active</state> <!-- XXX-BS 090a NEW **ABS MANDATORY** State of activity of the experimentalist. Enum: {active, inactive, retired, deceased}. default = ‘active’ -->
+		
+	<!-- EXPERIMENTALIST LABORATORIES -->
+		<laboratories> <!-- **ABS MANDATORY at least one** Put in chronological order -->
+			<laboratory state="current"><!-- multiple --> <!-- **ABS MANDATORY, at least one 'current' for 'active', all 'previous' for others** Enum of 'state': {previous, current} -->
+				<uid></uid> <!-- **ABS MANDATORY** LINK to the existing UID of the current laboratory where the experimentalist works [‘LAB_LabAcronym’] -->
+				<status></status> <!-- **MANDATORY for current laboratory** Status of the experimentalist in this laboratory. Enum: {professor, researcher, post-doc, PhD student, master student, undergraduate student, engineer, technician} -->
+				<date_begin></date_begin> <!-- **ABS MANDATORY for current lab** Beginning date of the experimentalist in this laboratory. [Format: ‘YYYY-MM-DD’] Ex: '1999-10-05' -->
+				<date_end></date_end> <!-- **ABS MANDATORY for previous lab** Ending date of the experimentalist in this laboratory. [Format: ‘YYYY-MM-DD’] Ex: '1999-10-05', '' -->
+				<comments><![CDATA[]]></comments> <!-- Additional information ... [blob] -->
+			</laboratory>
+		</laboratories>
+		
+	<!-- EXPERIMENTALIST CONTACTS -->
+		<email></email> <!-- **MANDATORY** Current e-mail of the experimentalist -->
+		<phone></phone> <!-- Current phone number of the experimentalist. ex: +33(0)7 06 05 04 01 -->
+		<links> <!-- **OPTION** Link(s) to current web page(s) of the experimentalist -->
+			<link><!-- multiple --> 
+				<name><![CDATA[]]></name> <!-- Name of the web page(s) -->
+				<url><![CDATA[]]></url> <!-- **MANDATORY in OPTION** URL address (avoid non-perennial commercial URL) -->
+			</link>
+		</links>
+		<comments><![CDATA[]]></comments> <!-- Additional information on the experimentalist [blob] -->
+	</experimentalist>
+
+</import>

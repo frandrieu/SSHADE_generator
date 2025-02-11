@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+Data type : Laboratory
+
+Specific notes :
+	- 
+	
+General notes : 
+	- Most of the tags are optional, you can remove the really unnecessary ones.
+	- Tags marked as 'multiple' can be copied (with its block of sub-tag, up to the ending tag) if needed.
+	- all blocs marked "OPTION" can be fully removed if not needed (now or in the future)
+	- **ABS MANDATORY / ABS COMPULSORY**: a value need to be absolutely provided, no way to escape! (SSHADE will not function properly if absent).
+	- **MANDATORY / COMPULSORY**: very important values for the search of the data. If the value (txt or numeric) of one tag is not known (or irrelevant in your case), then put 'NULL' and write a comment to keep track of the missing value. Remove comment when value is added.
+	- **MANDATORY / COMPULSORY only for ...**: when a value is optionally MANDATORY the condition is written. 
+	- "LINK to existing UID" (unique identifier): references to another table in SSHADE. You have to reconstruct (easy for some: rule is in comment) or found this existing UID in the database beforehand (use "Provider/Full Search" menu in SSHADE).
+	- "UID to CREATE": you need to create this UID using their specific rules of creation that are explained in their attached comment. Use only alphanumeric characters and '_'.
+	- For UID you can use only alpha-numeric characters and the following: '_', '-'
+	- Enumeration type ("Enum" or "OpenEnum") must contain one single item from the list given in brackets {}.
+	- use a CDATA tag when a value contains at least one special character (ie: &, >, <,...). Example: <![CDATA[AT&T]]> for AT&T
+	- The data format is noted beetween [] and is 'ascii' when not specified. Ex: [Float], [Integer]. For [float] 2 formats are possible: decimal (123.456) or scientific (1.234e-56)  
+	- when no numerical format or Enum is specified, it is free text but limited to 256 characters. Only those noted [blob] have no size limitation.
+	- to import data for the first time you have to set <import_mode>='first import'. To correct data you have to change it to 'correction'.
+	- when a <filename> is given, then the file should be ziped with this xml file for import.   
+-->
+
+<import type="laboratory" ssdm_version="0.9.0"
+        xmlns="http://sshade.eu/schema/import"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://sshade.eu/schema/import http://sshade.eu/schema/import-0.9.xsd">
+
+	<laboratory><!-- multiple -->
+		<import_mode>first import</import_mode> <!-- **ABS MANDATORY** Mode of import of the 'laboratory' data. Enum: {first import, ignore, draft, no change, correction} -->
+		<uid>LAB_</uid> <!-- **ABS MANDATORY to CREATE** Unique identifier code given to the laboratory. Should be of the style ‘LAB_LabAcronym’ where ‘LabAcronym’ is the acronym of the laboratory. Format: in UPPERCASES -->
+		<manager_databases> <!-- **ABS MANDATORY at least one** -->
+			<database_uid>DB_</database_uid><!-- multiple --> <!-- **ABS MANDATORY** LINK to the existing UID of the database which manages this laboratory information [‘DB_DatabaseAcronym’] -->
+		</manager_databases>
+		
+	<!-- LABORATORY DESCRIPTION -->
+		<acronym></acronym> <!-- **ABS MANDATORY** Acronym of the laboratory -->	
+		<name><![CDATA[]]></name> <!-- **ABS MANDATORY** Full name of the laboratory -->
+		<description><![CDATA[]]></description> <!-- General description of the scientific/technical activity of the laboratory [blob] -->
+		<organizations> <!-- **MANDATORY at least one** -->
+			<organization><!-- multiple --> 
+				<acronym></acronym> <!-- **MANDATORY** Acronym of the parent organization to which belong the laboratory -->	
+				<name><![CDATA[]]></name> <!-- **MANDATORY** Name of the parent organization to which belong the laboratory -->
+			</organization>
+		</organizations> 		
+		<addresses> <!-- **ABS MANDATORY at least one** -->
+			<address><!-- multiple --> 
+				<label></label> <!-- Label of the address (postal/geographic) or name of the geographic site of the laboratory (with multiple sites) -->
+				<street><![CDATA[]]></street> <!-- **MANDATORY** Street address, building number/name of the laboratory, and/or PO Box -->
+				<postal_code></postal_code> <!-- **MANDATORY** Postal code of the laboratory -->
+				<city></city> <!-- **MANDATORY** City/locality of the laboratory -->
+				<region><![CDATA[]]></region> <!-- Region, state, province, or county of the laboratory -->
+				<country_code></country_code> <!-- **ABS MANDATORY** 2-digit country code of the laboratory. Enum: {CH, DE, ES, FR, GB, HU, IT, PL, …} [norm ISO 3166-1 alpha-2] see  https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2 -->
+			</address>
+		</addresses>
+		
+	<!-- LABORATORY HISTORY -->
+		<date_begin></date_begin> <!-- Beginning date of the laboratory. [Format: ‘YYYY-MM-DD’] Ex: '1999-10-05' -->
+		<date_end></date_end> <!-- **COMPULSORY when lab stop activity** Ending date of the laboratory. [Format: ‘YYYY-MM-DD’] -->
+				
+	<!-- LABORATORY WEB SITES -->
+		<links> <!-- **MANDATORY at least one** Link(s) to current web page(s) of the laboratory and organization(s) -->
+			<link><!-- multiple --> 
+				<name><![CDATA[]]></name> <!-- **MANDATORY** Name of the web page(s) -->
+				<url><![CDATA[]]></url> <!-- **MANDATORY** URL address (avoid non-perennial commercial URL) -->
+			</link>
+		</links>
+		<comments><![CDATA[]]></comments> <!-- Additional information on the laboratory (Tel, …) [blob] -->
+	</laboratory>
+</import>
