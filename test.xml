@@ -5,7 +5,8 @@
   <import_mode>first import</import_mode> <!-- **ABS MANDATORY** Mode of import of 'sample' data. Enum: {first import, ignore, draft, no change, correction} --> -->
   <uid>SAMPLE_</uid> <!-- **ABS MANDATORY to CREATE** Unique identifier code given to the sample. Should be of the style ‘SAMPLE_AB_yyyymmdd_123...’ where ‘AB’ is your initials, 'yyyymmdd' the current date, and '123...' should be alphanumeric ascii (only with '_'), with no more than 6 characters --> -->
   <owner_databases></owner_databases> <!-- **ABS MANDATORY at least one** --> -->
-   <database_uid>DB_</database_uid> <!-- multiple --> -->
+   <database_uid>DB_GEOPS</database_uid> <!-- multiple --> -->
+   <database_uid>DB_GHOSST</database_uid> <!-- multiple --> -->
   <experimentalists></experimentalists> <!-- **MANDATORY** --> -->
    <experimentalist_uid>EXPER_</experimentalist_uid> <!-- multiple --> -->
   <name></name> <!-- **ABS MANDATORY** Name of sample given by experimentalist. Should contain explicit info on the sample or main constituting materials (name(s), composition,...) + typical properties --> -->

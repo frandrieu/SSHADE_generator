@@ -257,14 +257,17 @@ class XMLGeneratorApp:
         for child in element['children']:
             self.create_widget(child, input_container if has_children else parent_frame, depth+1)
 
-    def duplicate_element(self, element, parent_frame):
-        # Create deep copy of the element
-        new_element = copy.deepcopy(element)
-        new_element['id'] = str(uuid.uuid4())  # Unique identifier for the new element
-        new_element['parent']['children'].append(new_element)
 
-        # Add the new element to the GUI
+    def duplicate_element(self, element, parent_frame):
+        # Use the element's parent's children list to find the index by comparing the unique 'id'
+        parent = element['parent']
+        idx = next(i for i, child in enumerate(parent['children']) if child['id'] == element['id'])
+        new_element = copy.deepcopy(element)
+        new_element['id'] = str(uuid.uuid4())  # assign a new unique identifier
+        new_element['parent'] = parent           # explicitly set the parent to avoid deep copy issues
+        parent['children'].insert(idx + 1, new_element)
         self.create_widget(new_element, parent_frame)
+
 
     def remove_element(self, element, parent_frame):
         # Remove the element from the parent's children
